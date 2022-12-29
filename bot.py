@@ -36,20 +36,23 @@ async def on_ready():
 async def on_message(message):
     user_id = message.author.id
 
+    if message.content.startswith('register'):
+        users_collection.insert_one(
+            {"user_id": user_id, "command_used": False})
+        await message.channel.send('Register complete ! Have fun :)')
+
     if message.content.startswith('hi'):
-        cursor = users_collection.find({"user_id": user_id})
-        # Build a string with the results of the query
-        result_string = "Query results:\n"
-
-        for doc in cursor:
-            result_string += f"{doc['user_id']} - {doc['command_used']}\n"
-            if (doc['command_used'] == False):
-                await send_random_image(message.channel)
-
-        users_collection.update_one(
-            {"user_id": user_id},
-            {"$set": {"command_used": True}}
-        )
+        doc = users_collection.find_one({"user_id": user_id})
+        if doc is None:
+            await message.channel.send('User not registered ! Use register command')
+        elif (doc['command_used'] == False):
+            await send_random_image(message.channel)
+            users_collection.update_one(
+                {"user_id": user_id},
+                {"$set": {"command_used": True}}
+            )
+        else:
+            await message.channel.send('Command already used !')
 
     if message.content.startswith('ok'):
         await send_random_image(message.channel)
