@@ -41,7 +41,7 @@ async def on_message(message):
             {"user_id": user_id, "command_used": False})
         await message.channel.send('Register complete ! Have fun :)')
 
-    if message.content.startswith('hi'):
+    if message.content.startswith('card'):
         doc = users_collection.find_one({"user_id": user_id})
         if doc is None:
             await message.channel.send('User not registered ! Use register command')
@@ -53,9 +53,6 @@ async def on_message(message):
             )
         else:
             await message.channel.send('Command already used !')
-
-    if message.content.startswith('ok'):
-        await send_random_image(message.channel)
 
 client.run(
     discord_bot_key)
