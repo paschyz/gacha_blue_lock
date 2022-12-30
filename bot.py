@@ -25,6 +25,7 @@ async def send_random_image(channel):
     image_file = random.choice(image_files)
     # Send the image file to the channel
     await channel.send(file=discord.File("img/cards/" + image_file))
+    return image_file
 
 
 @client.event
@@ -37,7 +38,7 @@ async def on_message(message):
     user_id = message.author.id
 
     if message.content.startswith('/help'):
-        await message.channel.send('Available commands:\n /register \n /card')
+        await message.channel.send('Available commands:\n /register \n /card\n /inventory')
 
     if message.content.startswith('/register'):
         users_collection.insert_one(
@@ -49,13 +50,22 @@ async def on_message(message):
         if doc is None:
             await message.channel.send('User not registered ! Use /register command')
         elif (doc['command_used'] == False):
-            await send_random_image(message.channel)
+            image_file = await send_random_image(message.channel)
             users_collection.update_one(
                 {"user_id": user_id},
                 {"$set": {"command_used": True}}
             )
+            users_collection.update_one(
+                {"user_id": user_id},
+                {"$push": {"dropped_images": image_file}}
+            )
         else:
             await message.channel.send('Command already used !')
+
+    if message.content.startswith('/inventory'):
+        doc = users_collection.find_one({"user_id": user_id})
+        for cards in doc["dropped_images"]:
+            await message.channel.send(file=discord.File("img/cards/" + cards))
 
 client.run(
     discord_bot_key)
