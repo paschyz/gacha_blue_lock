@@ -11,7 +11,7 @@ load_dotenv()
 discord_bot_key = os.getenv("DISCORD_BOT_KEY")
 mongo_db_key = os.getenv("MONGO_DB_KEY")
 intents = discord.Intents.all()
-client = discord.Client(command_prefix='!', intents=intents)
+client = discord.Client(command_prefix='/', intents=intents)
 client_mongo = MongoClient(
     mongo_db_key)
 db = client_mongo["BlueLOCK"]
@@ -36,15 +36,18 @@ async def on_ready():
 async def on_message(message):
     user_id = message.author.id
 
-    if message.content.startswith('register'):
+    if message.content.startswith('/help'):
+        await message.channel.send('Available commands:\n /register \n /card')
+
+    if message.content.startswith('/register'):
         users_collection.insert_one(
             {"user_id": user_id, "command_used": False})
         await message.channel.send('Register complete ! Have fun :)')
 
-    if message.content.startswith('card'):
+    if message.content.startswith('/card'):
         doc = users_collection.find_one({"user_id": user_id})
         if doc is None:
-            await message.channel.send('User not registered ! Use register command')
+            await message.channel.send('User not registered ! Use /register command')
         elif (doc['command_used'] == False):
             await send_random_image(message.channel)
             users_collection.update_one(
