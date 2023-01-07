@@ -36,6 +36,7 @@ async def on_ready():
 @client.event
 async def on_message(message):
     user_id = message.author.id
+    username = str(message.author)
 
     if message.content.startswith('/help'):
         await message.channel.send('Available commands:\n /register \n /card\n /inventory')
@@ -49,9 +50,16 @@ async def on_message(message):
         await message.channel.send('Reset ! Everyone can summon now !')
 
     if message.content.startswith('/register'):
-        users_collection.insert_one(
-            {"user_id": user_id, "command_used": False})
-        await message.channel.send('Register complete ! Have fun :)')
+        doc = users_collection.find_one({"user_id": user_id})
+        if doc is None:
+            users_collection.insert_one(
+                {"user_id": user_id, "username": username, "command_used": False, })
+            await message.channel.send('Register complete ! Have fun :)')
+        else:
+            await message.channel.send('Already registered !')
+
+    if message.content.startswith('/tt'):
+        await message.channel.send(username)
 
     if message.content.startswith('/card'):
         doc = users_collection.find_one({"user_id": user_id})
