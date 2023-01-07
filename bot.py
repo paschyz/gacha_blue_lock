@@ -40,6 +40,14 @@ async def on_message(message):
     if message.content.startswith('/help'):
         await message.channel.send('Available commands:\n /register \n /card\n /inventory')
 
+    if message.content.startswith('/reset'):
+        doc = users_collection.find()
+        users_collection.update_many(
+            {},
+            {"$set": {"command_used": False}}
+        )
+        await message.channel.send('Reset ! Everyone can summon now !')
+
     if message.content.startswith('/register'):
         users_collection.insert_one(
             {"user_id": user_id, "command_used": False})
