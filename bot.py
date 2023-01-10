@@ -58,7 +58,7 @@ async def on_message(message):
         else:
             await message.channel.send('Already registered !')
 
-    if message.content.startswith('/tt'):
+    if message.content.startswith('/create'):
         await message.channel.send(username)
 
     if message.content.startswith('/card'):
