@@ -21,9 +21,9 @@ def fill_dropdown(id, input):
 
 
 def create_card(name, position, club, image, country, rating, pace, shooting, passing, dribbling, defending, physicality):
+
     fill_dropdown("nation", country)
-    fill_input_by_id("newbadge", club)
-    fill_input_by_id("newface", image)
+
     fill_input_by_id("name", name)
     fill_input_by_id("position", position)
 
@@ -34,6 +34,11 @@ def create_card(name, position, club, image, country, rating, pace, shooting, pa
     fill_input_by_id("att4s", dribbling)
     fill_input_by_id("att5s", defending)
     fill_input_by_id("att6s", physicality)
+
+    fill_input_by_id("newface", image)
+    fill_input_by_id("newbadge", club)
+
+    driver.find_element("css selector", ".bigcardbtn").click()
 
 
 url = "https://www.futwiz.com/en/fifa23/custom-player"
@@ -61,7 +66,7 @@ driver.add_cookie(
 driver.maximize_window()
 
 create_card("isagi", "cam", "https://i.imgur.com/cEtTE3o.png",
-            "https://i.imgur.com/Uks4uve.png", "Japan", 90, 86, 87, 90, 80, 87, 80)
+            "https://i.imgur.com/Uks4uve.png", "Japan", 88, 86, 87, 90, 80, 87, 80)
 
 link = driver.find_element("css selector", ".download")
 # with open("C:/Users/d/Pictures/test.png", 'wb') as file:
@@ -72,4 +77,4 @@ try:
     time.sleep(4)
 except TimeoutError:
     print("The file didn't download within 4 seconds. You may need to adjust the time.sleep() call to wait longer.")
-driver.quit()
+# driver.quit()
