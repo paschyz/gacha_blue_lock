@@ -37,6 +37,8 @@ def create_card(name, position, club, image, country, rating, pace, shooting, pa
 
 
 url = "https://www.futwiz.com/en/fifa23/custom-player"
+
+
 service = Service("geckodriver.exe")
 
 service.start()
@@ -50,8 +52,11 @@ users_collection = db["cards"]
 
 
 driver = webdriver.Firefox(service=service)
-driver.get(url)
 
+
+driver.get(url)
+driver.add_cookie(
+    {"name": "consentUUID", "value": "84ed1daf-20c0-4275-bd93-88b5919d1d51_15"})
 # driver.firefox_profile.set_preference("download.default_filename", "test.png")
 driver.maximize_window()
 
