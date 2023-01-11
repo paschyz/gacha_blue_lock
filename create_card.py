@@ -58,23 +58,19 @@ users_collection = db["cards"]
 
 driver = webdriver.Firefox(service=service)
 
-
 driver.get(url)
 driver.add_cookie(
     {"name": "consentUUID", "value": "84ed1daf-20c0-4275-bd93-88b5919d1d51_15"})
-# driver.firefox_profile.set_preference("download.default_filename", "test.png")
-driver.maximize_window()
+
 
 create_card("isagi", "cam", "https://i.imgur.com/cEtTE3o.png",
             "https://i.imgur.com/Uks4uve.png", "Japan", 88, 86, 87, 90, 80, 87, 80)
 
+
 link = driver.find_element("css selector", ".download")
-# with open("C:/Users/d/Pictures/test.png", 'wb') as file:
-#     png = link.screenshot_as_png
-#     file.write(png)
+
+
 driver.execute_script("arguments[0].click();", link)
-try:
-    time.sleep(4)
-except TimeoutError:
-    print("The file didn't download within 4 seconds. You may need to adjust the time.sleep() call to wait longer.")
-# driver.quit()
+
+time.sleep(2)
+driver.quit()
