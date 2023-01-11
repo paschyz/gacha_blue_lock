@@ -23,10 +23,8 @@ def fill_dropdown(id, input):
 def create_card(name, position, club, image, country, rating, pace, shooting, passing, dribbling, defending, physicality):
 
     fill_dropdown("nation", country)
-
     fill_input_by_id("name", name)
     fill_input_by_id("position", position)
-
     fill_input_by_id("rating", rating)
     fill_input_by_id("att1s", pace)
     fill_input_by_id("att2s", shooting)
@@ -37,7 +35,7 @@ def create_card(name, position, club, image, country, rating, pace, shooting, pa
 
     fill_input_by_id("newface", image)
     fill_input_by_id("newbadge", club)
-
+    # updates newbadge and newface image
     driver.find_element("css selector", ".bigcardbtn").click()
 
 
@@ -67,10 +65,7 @@ create_card("isagi", "cam", "https://i.imgur.com/cEtTE3o.png",
             "https://i.imgur.com/Uks4uve.png", "Japan", 88, 86, 87, 90, 80, 87, 80)
 
 
-link = driver.find_element("css selector", ".download")
-
-
-driver.execute_script("arguments[0].click();", link)
+driver.execute_script("makeMyImage()")
 
 time.sleep(2)
 driver.quit()
