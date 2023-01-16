@@ -4,9 +4,10 @@ from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
 import os
+from dotenv import load_dotenv
 import pymongo
 from pymongo import MongoClient
-
+load_dotenv()
 
 def fill_input_by_id(id, input):
     input_field = driver.find_element(By.ID, id)
@@ -33,6 +34,9 @@ def create_card(name, position, club, image, country, rating, pace, shooting, pa
     fill_input_by_id("att5s", defending)
     fill_input_by_id("att6s", physicality)
 
+    if(rating<=83):
+        fill_dropdown("cardtype", "Common Gold")
+
     fill_input_by_id("newface", image)
     fill_input_by_id("newbadge", club)
     # updates newbadge and newface image
@@ -43,9 +47,7 @@ url = "https://www.futwiz.com/en/fifa23/custom-player"
 
 
 service = Service("geckodriver.exe")
-
 service.start()
-
 
 mongo_db_key = os.getenv("MONGO_DB_KEY")
 client_mongo = MongoClient(
@@ -60,12 +62,14 @@ driver.get(url)
 driver.add_cookie(
     {"name": "consentUUID", "value": "84ed1daf-20c0-4275-bd93-88b5919d1d51_15"})
 
+myquery = {}
 
-create_card("isagi", "cam", "https://i.imgur.com/cEtTE3o.png",
-            "https://i.imgur.com/Uks4uve.png", "Japan", 88, 86, 87, 90, 80, 87, 80)
+mydoc = users_collection.find(myquery)
+
+for x in mydoc:
+    create_card(x["name"], x["position"], x["club"], x["image"], x["country"], x["rating"], x["pace"], x["shooting"], x["passing"], x["dribbling"], x["defending"], x["physicality"] )
+    driver.execute_script("makeMyImage()")
+    time.sleep(2)
 
 
-driver.execute_script("makeMyImage()")
 
-time.sleep(2)
-driver.quit()
