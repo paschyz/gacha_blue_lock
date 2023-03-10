@@ -3,9 +3,14 @@ from selenium import webdriver
 from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import os
 import pymongo
 from pymongo import MongoClient
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 def fill_input_by_id(id, input):
@@ -51,21 +56,53 @@ mongo_db_key = os.getenv("MONGO_DB_KEY")
 client_mongo = MongoClient(
     mongo_db_key)
 db = client_mongo["BlueLOCK"]
-users_collection = db["cards"]
+cards_collection = db["cards"]
 
+options = webdriver.FirefoxOptions()
 
-driver = webdriver.Firefox(service=service)
+options.headless = True
+
+driver = webdriver.Firefox(service=service, options=options)
+
 
 driver.get(url)
-driver.add_cookie(
-    {"name": "consentUUID", "value": "84ed1daf-20c0-4275-bd93-88b5919d1d51_15"})
+
+doc = cards_collection.find({})
 
 
-create_card("isagi", "cam", "https://i.imgur.com/cEtTE3o.png",
-            "https://i.imgur.com/Uks4uve.png", "Japan", 88, 86, 87, 90, 80, 87, 80)
+print("Page is loading...")
 
+# wait until: //*[@id="sp_message_container_681741"]
+WebDriverWait(driver, 10).until(EC.presence_of_element_located(
+    (By.XPATH, '//*[@id="sp_message_container_681741"]')))
 
+print("Page is loaded")
+
+# click on the cookie consent: //*[@id="notice"]/div[3]/button[3]
+# it is inside of an iframe
+driver.switch_to.frame(WebDriverWait(driver, 10).until(EC.presence_of_element_located(
+    (By.XPATH, '//*[@id="sp_message_iframe_681741"]'))))
+
+print("Switched to iframe")
+
+WebDriverWait(driver, 10).until(EC.presence_of_element_located(
+    (By.XPATH, '//*[@id="notice"]/div[3]/button[3]'))).click()
+
+print("Cookie consent is accepted")
+
+# switch back to the main page
+driver.switch_to.default_content()
+document = cards_collection.find_one({"name": "isagi"})
+print("Creating card for: " + document.get("name"))
+create_card(document.get("name"), document.get("position"), document.get("club"),
+            document.get("image"), document.get("country"), document.get("rating"), document.get("pace"), document.get("shooting"), document.get("passing"), document.get("dribbling"), document.get("defending"), document.get("physicality"))
+print("Card created")
 driver.execute_script("makeMyImage()")
+print("Card downloaded")
 
+
+# driver.execute_script("makeMyImage()")
+
+# driver.find_element(By.ID, "download").click()
 time.sleep(2)
-driver.quit()
+# driver.quit()

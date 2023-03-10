@@ -42,7 +42,6 @@ async def on_message(message):
         await message.channel.send('Available commands:\n /register \n /card\n /inventory')
 
     if message.content.startswith('/reset'):
-        doc = users_collection.find()
         users_collection.update_many(
             {},
             {"$set": {"command_used": False}}
