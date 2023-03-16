@@ -17,4 +17,4 @@ cards_collection = db["cards"]
 
 
 for x in cards_collection.find():
-    print(x)
+    print(x.get("name"))

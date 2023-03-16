@@ -1,16 +1,51 @@
 import time
-from selenium import webdriver
-from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import Select
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import os
-import pymongo
 from pymongo import MongoClient
 from dotenv import load_dotenv
+from selenium.webdriver.firefox.service import Service
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import Select, WebDriverWait
+from selenium.webdriver.support.ui import WebDriverWait
+
+from selenium.webdriver.support import expected_conditions as EC
+from selenium import webdriver
+
 
 load_dotenv()
+# Define directory for downloaded images
+download_dir = os.path.join(os.getcwd(), 'images')
+
+if not os.path.exists(download_dir):
+    os.makedirs(download_dir)
+# Load environment variables
+mongo_db_key = os.getenv("MONGO_DB_KEY")
+
+# Set up MongoDB connection
+client_mongo = MongoClient(mongo_db_key)
+db = client_mongo["BlueLOCK"]
+cards_collection = db["cards"]
+
+
+# Set up Selenium driver
+options = webdriver.FirefoxOptions()
+# options.headless = True
+profile = webdriver.FirefoxProfile(
+    "C:/Users/d/AppData/Roaming/Mozilla/Firefox/Profiles/6fc6cfm5.automation")
+
+
+profile.set_preference("browser.download.folderList", 2)
+profile.set_preference("browser.download.manager.showWhenStarting", False)
+profile.set_preference("browser.download.dir", download_dir)
+profile.set_preference(
+    "browser.helperApps.neverAsk.saveToDisk", "image/jpeg,image/png")
+service = Service("geckodriver.exe")
+driver = webdriver.Firefox(
+    service=service, options=options, firefox_profile=profile)
+
+# Set up FUTWIZ page URL
+url = "https://www.futwiz.com/en/fifa23/custom-player"
+
+# Define function to fill input fields by ID
 
 
 def fill_input_by_id(id, input):
@@ -18,11 +53,19 @@ def fill_input_by_id(id, input):
     input_field.clear()
     input_field.send_keys(input)
 
+# Define function to fill dropdown menus by ID
+
 
 def fill_dropdown(id, input):
     dropdown = driver.find_element(By.ID, id)
     select_dropdown = Select(dropdown)
     select_dropdown.select_by_visible_text(input)
+
+# Define function to create a FUTWIZ card
+
+
+def refreshImages():
+    driver.find_element(By.CSS_SELECTOR, ".bigcardbtn").click()
 
 
 def create_card(name, position, club, image, country, rating, pace, shooting, passing, dribbling, defending, physicality):
@@ -40,69 +83,42 @@ def create_card(name, position, club, image, country, rating, pace, shooting, pa
 
     fill_input_by_id("newface", image)
     fill_input_by_id("newbadge", club)
-    # updates newbadge and newface image
-    driver.find_element("css selector", ".bigcardbtn").click()
+
+    # Update newbadge and newface image
+    driver.execute_script("updateCard()")
+    driver.execute_script("changeBadge()")
+    driver.execute_script("changeFace()")
+    time.sleep(5)
 
 
-url = "https://www.futwiz.com/en/fifa23/custom-player"
+# Get documents from MongoDB collection
+documents = cards_collection.find({})
 
-
-service = Service("geckodriver.exe")
-
-service.start()
-
-
-mongo_db_key = os.getenv("MONGO_DB_KEY")
-client_mongo = MongoClient(
-    mongo_db_key)
-db = client_mongo["BlueLOCK"]
-cards_collection = db["cards"]
-
-options = webdriver.FirefoxOptions()
-
-options.headless = True
-
-driver = webdriver.Firefox(service=service, options=options)
-
-
+# Open FUTWIZ page and accept cookie consent
 driver.get(url)
 
-doc = cards_collection.find({})
+# WebDriverWait(driver, 10).until(EC.presence_of_element_located(
+#     (By.XPATH, '//*[@id="sp_message_container_681741"]')))
+# driver.switch_to.frame(WebDriverWait(driver, 10).until(
+#     EC.presence_of_element_located((By.XPATH, '//*[@id="sp_message_iframe_681741"]'))))
 
+# WebDriverWait(driver, 10).until(EC.presence_of_element_located(
+#     (By.XPATH, '//*[@id="notice"]/div[3]/button[3]'))).click()
+# driver.switch_to.default_content()
 
-print("Page is loading...")
+# Create FUTWIZ cards for each document in the MongoDB collection
+# document = cards_collection.find_one({"name": "isagi"})
 
-# wait until: //*[@id="sp_message_container_681741"]
-WebDriverWait(driver, 10).until(EC.presence_of_element_located(
-    (By.XPATH, '//*[@id="sp_message_container_681741"]')))
+for document in documents:
+    print("Creating card for: " + document.get("name"))
+    create_card(document.get("name"), document.get("position"), document.get("club"),
+                document.get("image"), document.get("country"), document.get("rating"), document.get("pace"), document.get("shooting"), document.get("passing"), document.get("dribbling"), document.get("defending"), document.get("physicality"))
+    print("Card created")
+    driver.execute_script("makeMyImage()")
+    print("Downloading card image")
 
-print("Page is loaded")
-
-# click on the cookie consent: //*[@id="notice"]/div[3]/button[3]
-# it is inside of an iframe
-driver.switch_to.frame(WebDriverWait(driver, 10).until(EC.presence_of_element_located(
-    (By.XPATH, '//*[@id="sp_message_iframe_681741"]'))))
-
-print("Switched to iframe")
-
-WebDriverWait(driver, 10).until(EC.presence_of_element_located(
-    (By.XPATH, '//*[@id="notice"]/div[3]/button[3]'))).click()
-
-print("Cookie consent is accepted")
-
-# switch back to the main page
-driver.switch_to.default_content()
-document = cards_collection.find_one({"name": "isagi"})
-print("Creating card for: " + document.get("name"))
-create_card(document.get("name"), document.get("position"), document.get("club"),
-            document.get("image"), document.get("country"), document.get("rating"), document.get("pace"), document.get("shooting"), document.get("passing"), document.get("dribbling"), document.get("defending"), document.get("physicality"))
-print("Card created")
-driver.execute_script("makeMyImage()")
-print("Card downloaded")
-
-
-# driver.execute_script("makeMyImage()")
+    print("Card image downloaded")
 
 # driver.find_element(By.ID, "download").click()
-time.sleep(2)
+time.sleep(5)
 # driver.quit()
