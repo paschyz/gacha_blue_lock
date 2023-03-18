@@ -30,7 +30,7 @@ cards_collection = db["cards"]
 options = webdriver.FirefoxOptions()
 # options.headless = True
 profile = webdriver.FirefoxProfile(
-    "C:/Users/d/AppData/Roaming/Mozilla/Firefox/Profiles/6fc6cfm5.automation")
+    os.getenv("FIREFOX_PROFILE_PATH"))
 
 
 profile.set_preference("browser.download.folderList", 2)
@@ -89,10 +89,12 @@ def create_card(name, position, club, image, country, rating, pace, shooting, pa
     driver.execute_script("changeBadge()")
     driver.execute_script("changeFace()")
     time.sleep(5)
+    driver.execute_script("makeMyImage()")
+    time.sleep(5)
 
 
 # Get documents from MongoDB collection
-documents = cards_collection.find({})
+documents = cards_collection.find({"name": "isagi"})
 
 # Open FUTWIZ page and accept cookie consent
 driver.get(url)
@@ -113,12 +115,8 @@ for document in documents:
     print("Creating card for: " + document.get("name"))
     create_card(document.get("name"), document.get("position"), document.get("club"),
                 document.get("image"), document.get("country"), document.get("rating"), document.get("pace"), document.get("shooting"), document.get("passing"), document.get("dribbling"), document.get("defending"), document.get("physicality"))
-    print("Card created")
-    driver.execute_script("makeMyImage()")
-    print("Downloading card image")
 
-    print("Card image downloaded")
 
 # driver.find_element(By.ID, "download").click()
 time.sleep(5)
-# driver.quit()
+driver.quit()

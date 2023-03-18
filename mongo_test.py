@@ -13,8 +13,7 @@ mongo_db_key = os.getenv("MONGO_DB_KEY")
 client_mongo = MongoClient(
     mongo_db_key)
 db = client_mongo["BlueLOCK"]
-cards_collection = db["cards"]
+cards_collection = db["users"]
 
 
-for x in cards_collection.find():
-    print(x.get("name"))
+cards_collection.update_many({}, {"$set": {"dropped_images": []}})
