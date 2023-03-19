@@ -1,4 +1,3 @@
-# db.users.update_one({"user_id": user_ids}, {"command_used": True})
 import discord
 import os
 import random
@@ -38,95 +37,72 @@ async def on_ready():
     print('We have logged in as {0.user}'.format(client))
 
 
-@client.event
-async def on_message(message):
-    user_id = message.author.id
-    username = str(message.author)
-
-    if message.content.startswith('/help'):
-        await message.channel.send('Available commands:\n /register \n /card\n /inventory')
-
-    if message.content.startswith('/reset'):
-        users_collection.update_many(
-            {},
-            {"$set": {"command_used": False}}
-        )
-        await message.channel.send('Reset ! Everyone can summon now !')
-
-    if message.content.startswith('/register'):
-        doc = users_collection.find_one({"user_id": user_id})
-        if doc is None:
-            users_collection.insert_one(
-                {"user_id": user_id, "username": username, "command_used": False, })
-            await message.channel.send('Register complete ! Have fun :)')
-        else:
-            await message.channel.send('Already registered !')
-
-    if message.content.startswith('/create'):
-        await message.channel.send(username)
-
-    if message.content.startswith('/card'):
-        doc = users_collection.find_one({"user_id": user_id})
-        if doc is None:
-            await message.channel.send('User not registered ! Use /register command')
-        elif (doc['command_used'] == False):
-            image_file = await send_random_image(message.channel)
-            users_collection.update_one(
-                {"user_id": user_id},
-                {"$set": {"command_used": True}}
-            )
-            users_collection.update_one(
-                {"user_id": user_id},
-                {"$push": {"dropped_images": image_file}}
-            )
-        else:
-            await message.channel.send('Command already used !')
-
-    if message.content.startswith('/inventory'):
-        doc = users_collection.find_one({"user_id": user_id})
-        for cards in doc["dropped_images"]:
-            await message.channel.send(file=discord.File("img/cards/" + cards))
-
-    if message.content.startswith('/banner'):
-        image_files = os.listdir("images/banner1/")
-        for cards in image_files:
-            await message.channel.send(file=discord.File("images/banner1/" + cards))
-
-    # @client.command(description='TEST')
-    # async def mission(ctx):
-    #     # Your implementation of the mission method goes here
-    #     await ctx.send('This is a test')
-        # Define the carousel message
-    # Define the carousel message
-message = discord.Embed(title="Carousel Message",
-                        description="Here's an example carousel message:")
-message.set_image(url="https://example.com/carousel.jpg")
-message.set_footer(text="Footer text")
-
-# Define the carousel items
-items = [
-    {"name": "Card 1", "description": "Description for Card 1",
-        "image_url": "https://example.com/card1.jpg", "url": "https://example.com/card1"},
-    {"name": "Card 2", "description": "Description for Card 2",
-        "image_url": "https://example.com/card2.jpg", "url": "https://example.com/card2"},
-    {"name": "Card 3", "description": "Description for Card 3",
-        "image_url": "https://example.com/card3.jpg", "url": "https://example.com/card3"}
-]
-
-# Add the carousel items to the message
-for item in items:
-    card = discord.Embed(title=item["name"], description=item["description"])
-    card.set_image(url=item["image_url"])
-    card.add_field(name="Link", value=item["url"])
-    message.add_field(name="\u200b", value="\u200b", inline=False)
-    message.add_field(name="\u200b", value=card, inline=False)
-
-# Define the command to send the message
+@client.command(description="Says hello")
+async def hello(ctx):
+    await ctx.send('Hello, world!')
 
 
 @client.command()
-async def send_carousel(ctx):
-    await ctx.send(embed=message)
+async def helpme(ctx):
+    await ctx.send('Available commands:\n /register \n /card\n /inventory')
+
+
+@client.command()
+async def reset(ctx):
+    users_collection.update_many(
+        {},
+        {"$set": {"command_used": False}}
+    )
+    await ctx.send('Reset ! Everyone can summon now !')
+
+
+@client.command()
+async def register(ctx):
+    user_id = ctx.author.id
+    username = str(ctx.author)
+    doc = users_collection.find_one({"user_id": user_id})
+    if doc is None:
+        users_collection.insert_one(
+            {"user_id": user_id, "username": username, "command_used": False, })
+        await ctx.send('Register complete ! Have fun :)')
+    else:
+        await ctx.send('Already registered !')
+
+
+@client.command()
+async def summon(ctx):
+    user_id = ctx.author.id
+    username = str(ctx.author)
+    doc = users_collection.find_one({"user_id": user_id})
+    if doc is None:
+        await ctx.send('User not registered ! Use /register command')
+    elif (doc['command_used'] == False):
+        image_file = await send_random_image(ctx.channel)
+        users_collection.update_one(
+            {"user_id": user_id},
+            {"$set": {"command_used": True}}
+        )
+        users_collection.update_one(
+            {"user_id": user_id},
+            {"$push": {"dropped_images": image_file}}
+        )
+    else:
+        await ctx.send('Command already used !')
+
+
+@client.command()
+async def inventory(ctx):
+    user_id = ctx.author.id
+    doc = users_collection.find_one({"user_id": user_id})
+    for cards in doc["dropped_images"]:
+        await ctx.send(file=discord.File("images/banner1/" + cards))
+
+
+@client.command()
+async def banner(ctx):
+    image_files = os.listdir("images/banner1/")
+    for cards in image_files:
+        await ctx.send(file=discord.File("images/banner1/" + cards))
 
 
 client.run(

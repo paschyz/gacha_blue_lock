@@ -12,7 +12,7 @@ from discord.utils import MISSING
 load_dotenv()
 
 discord_bot_key = os.getenv("DISCORD_BOT_KEY")
-mongo_db_key = os.getenv("MONGO_DB_KEY")
+
 intents = discord.Intents.default()
 intents.message_content = True
 
