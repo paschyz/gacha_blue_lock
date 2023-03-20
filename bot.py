@@ -1,3 +1,5 @@
+from typing import Optional
+
 import discord
 import os
 import random
@@ -6,22 +8,40 @@ import pymongo
 from pymongo import MongoClient
 from discord import Interaction, app_commands, ui
 from discord.ext import commands, tasks
-from discord.utils import MISSING
-from discord.ui import Button, View
 
+from discord.ui import Button, View
 load_dotenv()
 
 discord_bot_key = os.getenv("DISCORD_BOT_KEY")
 mongo_db_key = os.getenv("MONGO_DB_KEY")
-intents = discord.Intents.default()
-intents.message_content = True
-
-bot = commands.Bot(command_prefix='!', intents=intents)
+guild_id = os.getenv("GUILD_ID")
 client_mongo = MongoClient(
     mongo_db_key)
 db = client_mongo["BlueLOCK"]
 users_collection = db["users"]
 cards_collection = db["cards"]
+MY_GUILD = discord.Object(id=guild_id)  # replace with your guild id
+
+
+class MyClient(discord.Client):
+    def __init__(self, *, intents: discord.Intents):
+        super().__init__(intents=intents)
+        # A CommandTree is a special type that holds all the application command
+        # state required to make it work. This is a separate class because it
+        # allows all the extra state to be opt-in.
+        # Whenever you want to work with application commands, your tree is used
+        # to store and work with them.
+        # Note: When using commands.Bot instead of discord.Client, the bot will
+        # maintain its own tree instead.
+        self.tree = app_commands.CommandTree(self)
+
+    # In this basic example, we just synchronize the app commands to one guild.
+    # Instead of specifying a guild to every command, we copy over our global commands instead.
+    # By doing so, we don't have to wait up to an hour until they are shown to the end-user.
+    async def setup_hook(self):
+        # This copies the global commands over to your guild.
+        self.tree.copy_global_to(guild=MY_GUILD)
+        await self.tree.sync(guild=MY_GUILD)
 
 
 class MyView(discord.ui.View):
@@ -32,132 +52,191 @@ class MyView(discord.ui.View):
             style=discord.ButtonStyle.green, label="Click me!")
         self.add_item(self.button)
 
-    async def button_callback(self, interaction: discord.Interaction):
-        await interaction.response.send_message("Button clicked!", ephemeral=True)
+    def button_callback(self, interaction: discord.Interaction):
+        print("Button was clicked!")
 
 
 def get_random_float():
     return round(random.uniform(0.00, 100.00), 2)
 
 
+def verify_if_user_exists(user_id):
+    doc = users_collection.find_one({"user_id": user_id})
+    if doc is None:
+        return False
+    else:
+        return True
+
+
+def verify_user_inventory(user_id):
+    doc = users_collection.find_one({"user_id": user_id})
+    if "dropped_images" in doc and len(doc["dropped_images"]) > 0:
+        return True
+    else:
+        return False
+
+
 def get_card_rarity():
     randFloat = get_random_float()
     if randFloat <= 0.5:  # 0.5%
-        return "Legendary"
+        print("legendary")
+        return "legendary"
     if randFloat <= 5.5:  # 5%
-        return "Epic"
+        print("epic")
+        return "epic"
     if randFloat <= 45.5:  # 40%
-        return "Rare"
-    else:
-        return "Common"
-
-
-async def send_random_image(channel):
-    # Get a list of all files in the images directory
-    image_files = os.listdir("images/banner1/")
-    # Pick a random image file
-    image_file = random.choice(image_files)
-    # Send the image file to the channel
-    await channel.send(file=discord.File("images/banner1/" + image_file))
-    return image_file
+        print("rare")
+        return "rare"
+    else:  # 54.5%
+        print("common")
+        return "common"
 
 
 async def send_random_card(channel):
     card_name = roll_summon_category("common")
-    await channel.send(card_name)
+    await channel.send_message(card_name)
 
 
 async def roll_summon_category(rarity):
     cardsQuery = cards_collection.find({"rarity": rarity})
-    cards = list(cards_collection)
+    cards = list(cardsQuery)
     random_card = random.choice(cards)
-    return (random_card["name"])
+    get_color(rarity)
+    card = {"name": random_card["name"].capitalize(), "rarity": random_card["rarity"].capitalize(),
+            "card_image": random_card["card_image"], "color": get_color(rarity)}
+    return card
 
 
-@bot.event
+def get_color(rarity):
+    if rarity == "legendary":
+        return discord.Colour.gold()
+    if rarity == "epic":
+        return discord.Colour.purple()
+    if rarity == "rare":
+        return discord.Colour.blue()
+    if rarity == "common":
+        return discord.Colour.green()
+
+
+intents = discord.Intents.default()
+client = MyClient(intents=intents)
+
+
+@client.event
 async def on_ready():
-    print('We have logged in as {0.user}'.format(bot))
+    print(f'Logged in as {client.user} (ID: {client.user.id})')
+    print('------')
 
 
-@bot.command()
-async def random_card(ctx):
-    send_random_card(ctx.channel)
-    await ctx.send("Testing s!ummon")
+# @client.tree.command()
+# async def card(interaction: discord.Interaction):
+#     '''Summon a card !'''
+#     getcard = await roll_summon_category(get_card_rarity())
+#     embed = discord.Embed(colour=discord.Colour.red())
+#     embed.set_image(url=getcard["card_image"])
+
+#     embed.description = getcard["rarity"]
+
+#     embed.title = getcard["name"]
+#     embed.colour = getcard["color"]
+#     await interaction.response.send_message(embed=embed)
 
 
-@bot.command(description="Says hello")
-async def hello(ctx):
-    await ctx.send('Hello, world!')
+# @client.tree.command()
+# async def hello(interaction: discord.Interaction):
+#     """Says hello!"""
+#     channel = interaction.channel
+#     await channel.send("Hello, this is a message in a channel!")
 
 
-@bot.command()
-async def helpme(ctx):
-    await ctx.send('Available commands:\n /register \n /card\n /inventory')
-
-
-@bot.command()
-async def reset(ctx):
+@client.tree.command()
+async def reset(interaction: discord.Interaction):
+    """Resets everyone's summons !"""
     users_collection.update_many(
         {},
         {"$set": {"command_used": False}}
     )
-    await ctx.send('Reset ! Everyone can summon now !')
+    await interaction.response.send_message('Reset ! Everyone can summon now !')
 
 
-@bot.command()
-async def register(ctx):
-    user_id = ctx.author.id
-    username = str(ctx.author)
-    doc = users_collection.find_one({"user_id": user_id})
+@client.tree.command()
+async def register(interaction: discord.Interaction):
+    """Start collecting cards right now !"""
+    doc = users_collection.find_one({"user_id": interaction.user.id})
     if doc is None:
         users_collection.insert_one(
-            {"user_id": user_id, "username": username, "command_used": False, })
-        await ctx.send('Register complete ! Have fun :)')
+            {"user_id": interaction.user.id, "username": interaction.user, "command_used": False, })
+        await interaction.response.send_message('Register complete ! Have fun :)')
     else:
-        await ctx.send('Already registered !')
+        await interaction.response.send_message('Already registered !')
 
 
-@bot.command()
-async def summon(ctx):
-    user_id = ctx.author.id
-    username = str(ctx.author)
-    doc = users_collection.find_one({"user_id": user_id})
+@client.tree.command()
+async def daily(interaction: discord.Interaction):
+    """Daily summon ! \n Common (54.5%) \n Rare (40%) \n Epic (5%) \n Legendary (0.5%)"""
+
+    doc = users_collection.find_one({"user_id": interaction.user.id})
     if doc is None:
-        await ctx.send('User not registered ! Use /register command')
+        await interaction.response.send_message('User not registered ! Use /register command')
     elif (doc['command_used'] == False):
-        image_file = await send_random_image(ctx.channel)
+        getcard = await roll_summon_category(get_card_rarity())
+        embed = discord.Embed(colour=discord.Colour.red())
+        embed.set_image(url=getcard["card_image"])
+        embed.description = getcard["rarity"]
+        embed.title = getcard["name"]
+        embed.colour = getcard["color"]
+        await interaction.response.send_message(embed=embed)
         users_collection.update_one(
-            {"user_id": user_id},
+            {"user_id": interaction.user.id},
             {"$set": {"command_used": True}}
         )
         users_collection.update_one(
-            {"user_id": user_id},
-            {"$push": {"dropped_images": image_file}}
+            {"user_id": interaction.user.id},
+            {"$push": {"dropped_images": getcard["name"].lower()}}
         )
     else:
-        await ctx.send('Command already used !')
+        await interaction.response.send_message('Command already used !')
 
 
-@bot.command()
-async def inventory(ctx):
-    user_id = ctx.author.id
-    doc = users_collection.find_one({"user_id": user_id})
-    for cards in doc["dropped_images"]:
-        await ctx.send(file=discord.File("images/banner1/" + cards))
+@client.tree.command()
+async def inventory(interaction: discord.Interaction):
+    """Shows your inventory!"""
+    if (verify_if_user_exists(interaction.user.id)):
+        if (verify_user_inventory(interaction.user.id)):
+            doc = users_collection.find_one({"user_id": interaction.user.id})
+            embed = discord.Embed()
+            for card in doc['dropped_images']:
+                embed.title = interaction.user.name + "'s inventory"
+                url_card = cards_collection.find_one({"name": card})[
+                    "card_image"]
+                color = get_color(cards_collection.find_one(
+                    {"name": card})["rarity"])
+                rarity = cards_collection.find_one({"name": card})["rarity"]
+                embed.set_image(url=url_card)
+                embed.description = rarity.capitalize()
+                embed.colour = color
+                await interaction.channel.send(embed=embed)
+        else:
+            await interaction.response.send_message('No cards in inventory !')
+    else:
+        await interaction.response.send_message('User not registered ! Use /register command')
 
 
-@bot.command()
-async def banner(ctx):
-    image_files = os.listdir("images/banner1/")
-    for cards in image_files:
-        await ctx.send(file=discord.File("images/banner1/" + cards))
-
-
-@bot.command()
-async def send_button(ctx):
+@client.tree.command()
+async def buttontest(interaction: discord.Interaction):
+    """Button test ! to display inventory via carousel"""
     view = MyView()
-    await ctx.send("Testing buttons!", view=view)
+    await interaction.response.send_message("Test me !", view=view)
 
 
-bot.run(
+# @client.tree.command()
+# async def embed(interaction: discord.Interaction):
+#     """embedMultipleImages test 4 imgs"""
+#     embed1 = discord.Embed().set_image(url="https://i.imgur.com/sCcejmy.png")
+#     embed2 = discord.Embed().set_image(url="https://i.imgur.com/TddUQWs.png")
+
+#     await interaction.response.send_message(embeds=[embed1, embed2])
+
+
+client.run(
     discord_bot_key)

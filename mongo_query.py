@@ -15,14 +15,16 @@ client_mongo = MongoClient(
     mongo_db_key)
 db = client_mongo["BlueLOCK"]
 cards_collection = db["cards"]
+users_collection = db["users"]
 
 
 def random_card():
-
     test = cards_collection.find({"rarity": "common"})
     arr = list(test)
     random_card = random.choice(arr)
     print(random_card["name"])
 
 
-random_card()
+users_collection.update_many({}, {"$set": {"dropped_images": []}})
+
+# empty all dropped_images arrays
