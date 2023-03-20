@@ -124,9 +124,7 @@ client = MyClient(intents=intents)
 
 @client.event
 async def on_ready():
-    print(f'Logged in as {client.user} (ID: {client.user.id})')
-    print('------')
-
+    print('Logged in as {0.user}!'.format(client))
 
 # @client.tree.command()
 # async def card(interaction: discord.Interaction):
@@ -152,11 +150,23 @@ async def on_ready():
 @client.tree.command()
 async def reset(interaction: discord.Interaction):
     """Resets everyone's summons !"""
-    users_collection.update_many(
-        {},
-        {"$set": {"command_used": False}}
-    )
-    await interaction.response.send_message('Reset ! Everyone can summon now !')
+    if(interaction.user.id == 314809676447350784):
+        users_collection.update_many(
+            {},
+            {"$set": {"command_used": False}}
+        )
+        await interaction.response.send_message('Reset ! Everyone can summon now !')
+    else:
+        await interaction.response.send_message('You are not authorized to use this command !')
+
+@client.tree.command()
+async def prints(interaction: discord.Interaction):
+    """print user id, name and user object"""
+    id=interaction.user.id
+    name=interaction.user.name
+    user=interaction.user
+    await interaction.response.send_message(f'{id} {name} {user}')
+
 
 
 @client.tree.command()
@@ -164,8 +174,10 @@ async def register(interaction: discord.Interaction):
     """Start collecting cards right now !"""
     doc = users_collection.find_one({"user_id": interaction.user.id})
     if doc is None:
+        user_id = interaction.user.id
+        user= str(interaction.user)
         users_collection.insert_one(
-            {"user_id": interaction.user.id, "username": interaction.user, "command_used": False, })
+            {"user_id": user_id, "username": user, "command_used": False, })
         await interaction.response.send_message('Register complete ! Have fun :)')
     else:
         await interaction.response.send_message('Already registered !')
@@ -221,6 +233,21 @@ async def inventory(interaction: discord.Interaction):
     else:
         await interaction.response.send_message('User not registered ! Use /register command')
 
+
+@client.tree.command()
+async def reroll(interaction: discord.Interaction):
+    """Reroll all your summons !"""
+    if(verify_if_user_exists(interaction.user.id)):
+        users_collection.update_one({"user_id": interaction.user.id}, {"dropped_images": []})
+        await interaction.response.send_message('Reroll complete !')
+    else:
+        await interaction.response.send_message('User not registered ! Use /register command')
+
+@client.tree.command()
+async def multi(interaction: discord.Interaction):
+    """Multi-summon right now !"""
+    await interaction.response.send_message('Multi-summon not implemented yet !')
+    
 
 @client.tree.command()
 async def buttontest(interaction: discord.Interaction):
