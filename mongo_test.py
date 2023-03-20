@@ -7,13 +7,22 @@ import os
 import pymongo
 from pymongo import MongoClient
 from dotenv import load_dotenv
+import random
 
 load_dotenv()
 mongo_db_key = os.getenv("MONGO_DB_KEY")
 client_mongo = MongoClient(
     mongo_db_key)
 db = client_mongo["BlueLOCK"]
-cards_collection = db["users"]
+cards_collection = db["cards"]
 
 
-cards_collection.update_many({}, {"$set": {"dropped_images": []}})
+def random_card():
+
+    test = cards_collection.find({"rarity": "common"})
+    arr = list(test)
+    random_card = random.choice(arr)
+    print(random_card["name"])
+
+
+random_card()

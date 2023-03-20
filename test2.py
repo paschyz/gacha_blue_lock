@@ -60,6 +60,22 @@ def get_random_float():
     return round(random.uniform(0.00, 100.00), 2)
 
 
+def verify_if_user_exists(user_id):
+    doc = users_collection.find_one({"user_id": user_id})
+    if doc is None:
+        return False
+    else:
+        return True
+
+
+def verify_user_inventory(user_id):
+    doc = users_collection.find_one({"user_id": user_id})
+    if "dropped_images" in doc and len(doc["dropped_images"]) > 0:
+        return True
+    else:
+        return False
+
+
 def get_card_rarity():
     randFloat = get_random_float()
     if randFloat <= 0.5:  # 0.5%
@@ -71,7 +87,7 @@ def get_card_rarity():
     if randFloat <= 45.5:  # 40%
         print("rare")
         return "rare"
-    else:
+    else:  # 54.5%
         print("common")
         return "common"
 
@@ -85,7 +101,21 @@ async def roll_summon_category(rarity):
     cardsQuery = cards_collection.find({"rarity": rarity})
     cards = list(cardsQuery)
     random_card = random.choice(cards)
-    return (random_card["name"])
+    get_color(rarity)
+    card = {"name": random_card["name"].capitalize(), "rarity": random_card["rarity"].capitalize(),
+            "card_image": random_card["card_image"], "color": get_color(rarity)}
+    return card
+
+
+def get_color(rarity):
+    if rarity == "legendary":
+        return discord.Colour.gold()
+    if rarity == "epic":
+        return discord.Colour.purple()
+    if rarity == "rare":
+        return discord.Colour.blue()
+    if rarity == "common":
+        return discord.Colour.green()
 
 
 intents = discord.Intents.default()
@@ -98,17 +128,25 @@ async def on_ready():
     print('------')
 
 
-@client.tree.command()
-async def random_card(interaction: discord.Interaction):
-    card = await roll_summon_category(get_card_rarity())
-    await interaction.response.send_message(card)
+# @client.tree.command()
+# async def card(interaction: discord.Interaction):
+#     '''Summon a card !'''
+#     getcard = await roll_summon_category(get_card_rarity())
+#     embed = discord.Embed(colour=discord.Colour.red())
+#     embed.set_image(url=getcard["card_image"])
+
+#     embed.description = getcard["rarity"]
+
+#     embed.title = getcard["name"]
+#     embed.colour = getcard["color"]
+#     await interaction.response.send_message(embed=embed)
 
 
-@client.tree.command()
-async def hello(interaction: discord.Interaction):
-    """Says hello!"""
-    channel = interaction.channel
-    await channel.send("Hello, this is a message in a channel!")
+# @client.tree.command()
+# async def hello(interaction: discord.Interaction):
+#     """Says hello!"""
+#     channel = interaction.channel
+#     await channel.send("Hello, this is a message in a channel!")
 
 
 @client.tree.command()
@@ -135,20 +173,26 @@ async def register(interaction: discord.Interaction):
 
 @client.tree.command()
 async def daily(interaction: discord.Interaction):
-    """Daily summon !"""
+    """Daily summon ! \n Common (54.5%) \n Rare (40%) \n Epic (5%) \n Legendary (0.5%)"""
 
     doc = users_collection.find_one({"user_id": interaction.user.id})
     if doc is None:
         await interaction.response.send_message('User not registered ! Use /register command')
     elif (doc['command_used'] == False):
-        image_file = await send_random_image(interaction.response)
+        getcard = await roll_summon_category(get_card_rarity())
+        embed = discord.Embed(colour=discord.Colour.red())
+        embed.set_image(url=getcard["card_image"])
+        embed.description = getcard["rarity"]
+        embed.title = getcard["name"]
+        embed.colour = getcard["color"]
+        await interaction.response.send_message(embed=embed)
         users_collection.update_one(
             {"user_id": interaction.user.id},
             {"$set": {"command_used": True}}
         )
         users_collection.update_one(
             {"user_id": interaction.user.id},
-            {"$push": {"dropped_images": image_file}}
+            {"$push": {"dropped_images": getcard["name"].lower()}}
         )
     else:
         await interaction.response.send_message('Command already used !')
@@ -156,22 +200,35 @@ async def daily(interaction: discord.Interaction):
 
 @client.tree.command()
 async def inventory(interaction: discord.Interaction):
-    """Shows your player inventory!"""
-    doc = users_collection.find_one({"user_id": interaction.user.id})
+    """Shows your inventory!"""
+    if (verify_if_user_exists(interaction.user.id)):
+        if (verify_user_inventory(interaction.user.id)):
+            doc = users_collection.find_one({"user_id": interaction.user.id})
+            embed = discord.Embed()
+            for card in doc['dropped_images']:
+                embed.title = card.capitalize()
+                url_card = cards_collection.find_one({"name": card})[
+                    "card_image"]
+                color = get_color(cards_collection.find_one(
+                    {"name": card})["rarity"])
+                rarity = cards_collection.find_one({"name": card})["rarity"]
+                embed.set_image(url=url_card)
+                embed.description = rarity.capitalize()
+                embed.colour = color
+                await interaction.channel.send(embed=embed)
+        else:
+            await interaction.response.send_message('No cards in inventory !')
+    else:
+        await interaction.response.send_message('User not registered ! Use /register command')
 
-    embed = discord.Embed()
-    for card in doc["dropped_images"]:
-        embed.set_image(url="attachment://" + card)
-        await interaction.channel.send(embed=embed, file=discord.File("images/banner1/" + card))
 
+# @client.tree.command()
+# async def embed(interaction: discord.Interaction):
+#     """embedMultipleImages test 4 imgs"""
+#     embed1 = discord.Embed().set_image(url="https://i.imgur.com/sCcejmy.png")
+#     embed2 = discord.Embed().set_image(url="https://i.imgur.com/TddUQWs.png")
 
-@client.tree.command()
-async def embed(interaction: discord.Interaction):
-    """embedMultipleImages test 4 imgs"""
-    embed1 = discord.Embed().set_image(url="https://i.imgur.com/sCcejmy.png")
-    embed2 = discord.Embed().set_image(url="https://i.imgur.com/TddUQWs.png")
-
-    await interaction.response.send_message(embeds=[embed1, embed2])
+#     await interaction.response.send_message(embeds=[embed1, embed2])
 
 
 client.run(
