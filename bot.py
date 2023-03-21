@@ -79,16 +79,12 @@ def verify_user_inventory(user_id):
 def get_card_rarity():
     randFloat = get_random_float()
     if randFloat <= 0.5:  # 0.5%
-        print("legendary")
         return "legendary"
     if randFloat <= 5.5:  # 5%
-        print("epic")
         return "epic"
     if randFloat <= 45.5:  # 40%
-        print("rare")
         return "rare"
     else:  # 54.5%
-        print("common")
         return "common"
 
 
@@ -150,7 +146,7 @@ async def on_ready():
 @client.tree.command()
 async def reset(interaction: discord.Interaction):
     """Resets everyone's summons !"""
-    if(interaction.user.id == 314809676447350784):
+    if (interaction.user.id == 314809676447350784):
         users_collection.update_many(
             {},
             {"$set": {"command_used": False}}
@@ -159,14 +155,13 @@ async def reset(interaction: discord.Interaction):
     else:
         await interaction.response.send_message('You are not authorized to use this command !')
 
-@client.tree.command()
-async def prints(interaction: discord.Interaction):
-    """print user id, name and user object"""
-    id=interaction.user.id
-    name=interaction.user.name
-    user=interaction.user
-    await interaction.response.send_message(f'{id} {name} {user}')
-
+# @client.tree.command()
+# async def prints(interaction: discord.Interaction):
+#     """print user id, name and user object"""
+#     id=interaction.user.id
+#     name=interaction.user.name
+#     user=interaction.user
+#     await interaction.response.send_message(f'{id} {name} {user}')
 
 
 @client.tree.command()
@@ -175,7 +170,7 @@ async def register(interaction: discord.Interaction):
     doc = users_collection.find_one({"user_id": interaction.user.id})
     if doc is None:
         user_id = interaction.user.id
-        user= str(interaction.user)
+        user = str(interaction.user)
         users_collection.insert_one(
             {"user_id": user_id, "username": user, "command_used": False, })
         await interaction.response.send_message('Register complete ! Have fun :)')
@@ -190,24 +185,27 @@ async def daily(interaction: discord.Interaction):
     doc = users_collection.find_one({"user_id": interaction.user.id})
     if doc is None:
         await interaction.response.send_message('User not registered ! Use /register command')
-    elif (doc['command_used'] == False):
-        getcard = await roll_summon_category(get_card_rarity())
-        embed = discord.Embed(colour=discord.Colour.red())
-        embed.set_image(url=getcard["card_image"])
-        embed.description = getcard["rarity"]
-        embed.title = getcard["name"]
-        embed.colour = getcard["color"]
-        await interaction.response.send_message(embed=embed)
-        users_collection.update_one(
-            {"user_id": interaction.user.id},
-            {"$set": {"command_used": True}}
-        )
-        users_collection.update_one(
-            {"user_id": interaction.user.id},
-            {"$push": {"dropped_images": getcard["name"].lower()}}
-        )
+    elif (verify_user_inventory(interaction.user.id)):
+        if (doc['command_used'] == False):
+            getcard = await roll_summon_category(get_card_rarity())
+            embed = discord.Embed(colour=discord.Colour.red())
+            embed.set_image(url=getcard["card_image"])
+            embed.description = getcard["rarity"]
+            embed.title = getcard["name"]
+            embed.colour = getcard["color"]
+            await interaction.response.send_message(embed=embed)
+            users_collection.update_one(
+                {"user_id": interaction.user.id},
+                {"$set": {"command_used": True}}
+            )
+            users_collection.update_one(
+                {"user_id": interaction.user.id},
+                {"$push": {"dropped_images": getcard["name"].lower()}}
+            )
+        else:
+            await interaction.response.send_message('Command already used !')
     else:
-        await interaction.response.send_message('Command already used !')
+        await interaction.response.send_message('Inventory Empty ! Use /multi command to get more cards !')
 
 
 @client.tree.command()
@@ -237,17 +235,36 @@ async def inventory(interaction: discord.Interaction):
 @client.tree.command()
 async def reroll(interaction: discord.Interaction):
     """Reroll all your summons !"""
-    if(verify_if_user_exists(interaction.user.id)):
-        users_collection.update_one({"user_id": interaction.user.id}, {"dropped_images": []})
+    if (verify_if_user_exists(interaction.user.id)):
+        users_collection.update_one(
+            {"user_id": interaction.user.id}, {"$set": {"dropped_images": []}})
         await interaction.response.send_message('Reroll complete !')
     else:
         await interaction.response.send_message('User not registered ! Use /register command')
 
+
 @client.tree.command()
 async def multi(interaction: discord.Interaction):
     """Multi-summon right now !"""
-    await interaction.response.send_message('Multi-summon not implemented yet !')
-    
+    if (verify_if_user_exists(interaction.user.id)):
+        if (verify_user_inventory(interaction.user.id)):
+            await interaction.response.send_message('You already have cards in your inventory ! Use /reroll command to reroll your summons')
+        else:
+            for i in range(3):
+                getcard = await roll_summon_category(get_card_rarity())
+                embed = discord.Embed(colour=discord.Colour.red())
+                embed.set_image(url=getcard["card_image"])
+                embed.description = getcard["rarity"]
+                embed.title = getcard["name"]
+                embed.colour = getcard["color"]
+                await interaction.channel.send(embed=embed)
+                users_collection.update_one(
+                    {"user_id": interaction.user.id},
+                    {"$push": {"dropped_images": getcard["name"].lower()}}
+                )
+    else:
+        await interaction.response.send_message('User not registered ! Use /register command')
+
 
 @client.tree.command()
 async def buttontest(interaction: discord.Interaction):
@@ -255,6 +272,18 @@ async def buttontest(interaction: discord.Interaction):
     view = MyView()
     await interaction.response.send_message("Test me !", view=view)
 
+
+@client.tree.command()
+async def banner(interaction: discord.Interaction):
+    """Show banner !"""
+    doc = cards_collection.find()
+    for card in doc:
+        embed = discord.Embed()
+        embed.title = card["name"].capitalize()
+        embed.set_image(url=card["card_image"])
+        embed.description = card["rarity"].capitalize()
+        embed.colour = get_color(card["rarity"])
+        await interaction.channel.send(embed=embed)
 
 # @client.tree.command()
 # async def embed(interaction: discord.Interaction):
