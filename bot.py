@@ -44,16 +44,10 @@ class MyClient(discord.Client):
         await self.tree.sync(guild=MY_GUILD)
 
 
-class MyView(discord.ui.View):
-    def __init__(self):
-        super().__init__()
-
-        self.button = discord.ui.Button(
-            style=discord.ButtonStyle.green, label="Click me!")
-        self.add_item(self.button)
-
-    def button_callback(self, interaction: discord.Interaction):
-        print("Button was clicked!")
+class MyView(View):
+    @discord.ui.button(label="Click me")
+    async def on_button_click(self, button: Button, interaction: Interaction):
+        await interaction.response.send_message("Button clicked!")
 
 
 def get_random_float():
@@ -122,31 +116,19 @@ client = MyClient(intents=intents)
 async def on_ready():
     print('Logged in as {0.user}!'.format(client))
 
-# @client.tree.command()
-# async def card(interaction: discord.Interaction):
-#     '''Summon a card !'''
-#     getcard = await roll_summon_category(get_card_rarity())
-#     embed = discord.Embed(colour=discord.Colour.red())
-#     embed.set_image(url=getcard["card_image"])
 
-#     embed.description = getcard["rarity"]
-
-#     embed.title = getcard["name"]
-#     embed.colour = getcard["color"]
-#     await interaction.response.send_message(embed=embed)
-
-
-# @client.tree.command()
-# async def hello(interaction: discord.Interaction):
-#     """Says hello!"""
-#     channel = interaction.channel
-#     await channel.send("Hello, this is a message in a channel!")
+@client.tree.command()
+async def button_test(interaction: discord.Interaction):
+    """Test a button"""
+    view = MyView()
+    # @client.tree.command()
+    await interaction.response.send_message("Testing a button!", view=view)
 
 
 @client.tree.command()
 async def reset(interaction: discord.Interaction):
     """Resets everyone's summons !"""
-    if (interaction.user.id == 314809676447350784):
+    if (interaction.user.id == 314809676447350785):
         users_collection.update_many(
             {},
             {"$set": {"command_used": False}}
@@ -154,14 +136,6 @@ async def reset(interaction: discord.Interaction):
         await interaction.response.send_message('Reset ! Everyone can summon now !')
     else:
         await interaction.response.send_message('You are not authorized to use this command !')
-
-# @client.tree.command()
-# async def prints(interaction: discord.Interaction):
-#     """print user id, name and user object"""
-#     id=interaction.user.id
-#     name=interaction.user.name
-#     user=interaction.user
-#     await interaction.response.send_message(f'{id} {name} {user}')
 
 
 @client.tree.command()
@@ -237,6 +211,8 @@ async def reroll(interaction: discord.Interaction):
     """Reroll all your summons !"""
     if (verify_if_user_exists(interaction.user.id)):
         users_collection.update_one(
+            {"user_id": interaction.user.id}, {"$set": {"command_used": False}})
+        users_collection.update_one(
             {"user_id": interaction.user.id}, {"$set": {"dropped_images": []}})
         await interaction.response.send_message('Reroll complete !')
     else:
@@ -264,13 +240,6 @@ async def multi(interaction: discord.Interaction):
                 )
     else:
         await interaction.response.send_message('User not registered ! Use /register command')
-
-
-@client.tree.command()
-async def buttontest(interaction: discord.Interaction):
-    """Button test ! to display inventory via carousel"""
-    view = MyView()
-    await interaction.response.send_message("Test me !", view=view)
 
 
 @client.tree.command()
