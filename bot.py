@@ -42,11 +42,15 @@ class Carousel(View):
     @discord.ui.button(emoji="⬅️")
     async def button_left(self, interaction: Interaction, button: Button):
         self.current_index = (self.current_index - 1) % len(self.items)
+        self.items[self.current_index].set_footer(
+            text=f"{self.current_index + 1}/{len(self.items)}")
         await interaction.response.edit_message(embed=self.items[self.current_index])
 
     @discord.ui.button(emoji="➡️")
     async def button_right(self, interaction: Interaction, button: Button):
         self.current_index = (self.current_index + 1) % len(self.items)
+        self.items[self.current_index].set_footer(
+            text=f"{self.current_index + 1}/{len(self.items)}")
         await interaction.response.edit_message(embed=self.items[self.current_index])
 
 
@@ -147,9 +151,8 @@ async def register(interaction: discord.Interaction):
         await interaction.response.send_message('Already registered !')
 
 
-@client.tree.command()
+@client.tree.command(description="Daily summon !  |  Common (54.5%)   Rare (40%)   Epic (5%)   Legendary (0.5%)")
 async def daily(interaction: discord.Interaction):
-    """Daily summon !   Common (54.5%)   Rare (40%)   Epic (5%)   Legendary (0.5%)"""
 
     doc = users_collection.find_one({"user_id": interaction.user.id})
     if doc is None:
@@ -180,24 +183,36 @@ async def daily(interaction: discord.Interaction):
 @client.tree.command()
 async def inventory(interaction: discord.Integration):
     """Shows your inventory !"""
-    if (verify_if_user_exists(interaction.user.id)):
-        if (verify_user_inventory(interaction.user.id)):
+    if verify_if_user_exists(interaction.user.id):
+        if verify_user_inventory(interaction.user.id):
             items = []
             doc = users_collection.find_one({"user_id": interaction.user.id})
 
+            # Fetch dropped_images and their ratings
+            dropped_images_with_ratings = []
             for card in doc['dropped_images']:
-                url_card = cards_collection.find_one({"name": card})[
-                    "card_image"]
-                color = get_color(cards_collection.find_one(
-                    {"name": card})["rarity"])
-                rarity = cards_collection.find_one({"name": card})["name"]
-                embed = discord.Embed(title=interaction.user.name + "'s inventory",
+                card_doc = cards_collection.find_one({"name": card})
+                dropped_images_with_ratings.append((card, card_doc['rating']))
+
+            # Sort dropped_images by rating
+            sorted_dropped_images = sorted(
+                dropped_images_with_ratings, key=lambda x: x[1], reverse=True)
+
+            # Create embeds for the sorted dropped_images
+            for card, rating in sorted_dropped_images:
+                card_doc = cards_collection.find_one({"name": card})
+                url_card = card_doc["card_image"]
+                color = get_color(card_doc["rarity"])
+                rarity = card_doc["name"]
+                embed = discord.Embed(title=f"{interaction.user.name}'s inventory",
                                       description=rarity.capitalize(), color=color,
                                       url=url_card)
                 embed.set_image(url=url_card)
                 items.append(embed)
             carousel = Carousel(items)
-            await interaction.response.send_message(embed=embed, view=carousel)
+            items[0].set_footer(
+                text=f"{1}/{len(items)}")
+            await interaction.response.send_message(embed=items[0], view=carousel)
         else:
             await interaction.response.send_message('No cards in inventory !')
     else:
@@ -219,7 +234,7 @@ async def reroll(interaction: discord.Interaction):
 
 @client.tree.command()
 async def multi(interaction: discord.Interaction):
-    """Summon 3 cards ! Only available for new users !"""
+    """Summon 3 players ! Only available for new users / rerolled users !"""
     if (verify_if_user_exists(interaction.user.id)):
         if (verify_user_inventory(interaction.user.id)):
             await interaction.response.send_message('You already have cards in your inventory ! Use /reroll command to reroll your summons')
@@ -246,14 +261,25 @@ async def banner(interaction: discord.Interaction):
     doc = cards_collection.find()
     embeds = []
 
+    cards_with_rating = []
+
     for card in doc:
+        cards_with_rating.append((card, card["rating"]))
+
+    cards_with_rating = sorted(
+        cards_with_rating, key=lambda x: x[1], reverse=True)
+
+    for card in cards_with_rating:
         embed = discord.Embed()
-        embed.title = card["name"].capitalize()
-        embed.set_image(url=card["card_image"])
-        embed.description = card["rarity"].capitalize()
-        embed.colour = get_color(card["rarity"])
+        embed.title = card[0]["name"].capitalize()
+        embed.set_image(url=card[0]["card_image"])
+        embed.description = card[0]["rarity"].capitalize()
+        embed.colour = get_color(card[0]["rarity"])
         embeds.append(embed)
-    await interaction.channel.send(embed=embed, view=Carousel(embeds))
+
+    embeds[0].set_footer(
+        text=f"{1}/{len(embeds)}")
+    await interaction.response.send_message(embed=embeds[0], view=Carousel(embeds))
 
 
 client.run(
