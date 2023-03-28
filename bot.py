@@ -123,23 +123,36 @@ async def on_ready():
     print('Logged in as {0.user}!'.format(client))
 
 
-@client.tree.command(description="Give 100 credits to everyone !")
-async def give_credits(interaction: discord.Interaction):
+@client.tree.command(description="Give credits ! Only for admins !")
+async def give_credits(interaction: discord.Interaction, amount: int, user: Optional[discord.User] = None):
     required_role = discord.utils.get(interaction.guild.roles, name='Admin')
     if required_role in interaction.user.roles:
-        for user in users_collection.find():
-            user_id = user["user_id"]
-            ego_coins = user["ego_coins"]
-            users_collection.update_one({"user_id": user_id}, {
-                                        "$set": {"ego_coins": ego_coins+100}})
-        await interaction.response.send_message('Credits given to all users !')
+        if (user != None):
+
+            user_id = user.id
+            doc = users_collection.find_one({"user_id": user_id})
+            if doc is None:
+                await interaction.response.send_message('{}, this user is not registered !'.format(interaction.user.mention))
+            else:
+                ego_coins = doc["ego_coins"]
+                users_collection.update_one({"user_id": user_id}, {
+                                            "$set": {"ego_coins": ego_coins+amount}})
+                await interaction.response.send_message('{} credits given to {} !'.format(amount, interaction.user.mention))
+
+        else:
+
+            for user in users_collection.find():
+                user_id = user["user_id"]
+                ego_coins = user["ego_coins"]
+                users_collection.update_one({"user_id": user_id}, {
+                                            "$set": {"ego_coins": ego_coins+amount}})
+            await interaction.response.send_message('{} credits given to all users !'.format(amount))
     else:
         await interaction.response.send_message('You are not an admin ! You are not authorized to use this command !')
 
 
-@client.tree.command()
+@client.tree.command(description="Conquer this world with your ego !")
 async def register(interaction: discord.Interaction):
-    """Conquer this world with your ego !"""
     doc = users_collection.find_one({"user_id": interaction.user.id})
     if doc is None:
         user_id = interaction.user.id
@@ -151,35 +164,6 @@ async def register(interaction: discord.Interaction):
         await interaction.response.send_message('{}, you are already registered !'.format(interaction.user.mention))
 
 
-@client.tree.command(description="Daily summon !  |  Common (54.5%)   Rare (40%)   Epic (5%)   Legendary (0.5%)")
-async def daily(interaction: discord.Interaction):
-    doc = users_collection.find_one({"user_id": interaction.user.id})
-    if doc is None:
-        await interaction.response.send_message('{}, you are not registered ! Use /register command !'.format(interaction.user.mention))
-    elif (verify_user_inventory(interaction.user.id)):
-        if (doc['ego_coins'] >= 100):
-            getcard = await roll_summon_category(get_card_rarity())
-            embed = discord.Embed(colour=discord.Colour.red())
-            embed.set_image(url=getcard["card_image"])
-            embed.description = getcard["rarity"]
-            embed.title = getcard["name"]
-            embed.colour = getcard["color"]
-            await interaction.response.send_message(embed=embed)
-
-            users_collection.update_one(
-                {"user_id": interaction.user.id},
-                {"$set": {"ego_coins": doc['ego_coins']-100}}
-            )
-            users_collection.update_one(
-                {"user_id": interaction.user.id},
-                {"$push": {"dropped_images": getcard["name"].lower()}}
-            )
-        else:
-            await interaction.response.send_message('Not enough credits. You have {} EgoCoins !'.format(doc['ego_coins']))
-    else:
-        await interaction.response.send_message('Inventory Empty ! Use /multi command to get more cards !')
-
-
 @client.tree.command(description="Shows your EgoCoins !")
 async def balance(interaction: discord.Interaction):
     doc = users_collection.find_one({"user_id": interaction.user.id})
@@ -189,9 +173,8 @@ async def balance(interaction: discord.Interaction):
         await interaction.response.send_message('{}, you have **{}** *EgoCoins* !'.format(interaction.user.mention, doc['ego_coins']))
 
 
-@client.tree.command()
+@client.tree.command(description="Shows your inventory !")
 async def inventory(interaction: discord.Integration):
-    """Shows your inventory !"""
     if verify_if_user_exists(interaction.user.id):
         if verify_user_inventory(interaction.user.id):
             items = []
@@ -214,8 +197,8 @@ async def inventory(interaction: discord.Integration):
                 color = get_color(card_doc["rarity"])
                 rarity = card_doc["name"]
                 embed = discord.Embed(title=f"{interaction.user.name}'s inventory",
-                                      description=rarity.capitalize(), color=color,
-                                      url=url_card)
+                                      color=color,
+                                      )
                 embed.set_image(url=url_card)
                 items.append(embed)
             carousel = Carousel(items)
@@ -228,9 +211,8 @@ async def inventory(interaction: discord.Integration):
         await interaction.response.send_message('User not registered ! Use /register command')
 
 
-@client.tree.command()
+@client.tree.command(description="Reroll your account !    WARNING : This will delete your inventory and all you ressources !")
 async def reroll(interaction: discord.Interaction):
-    """Reroll your account !    WARNING : This will delete your inventory and all you ressources !"""
     if (verify_if_user_exists(interaction.user.id)):
         users_collection.update_one(
             {"user_id": interaction.user.id}, {"$set": {"ego_coins": 400, "dropped_images": []}})
@@ -239,23 +221,23 @@ async def reroll(interaction: discord.Interaction):
         await interaction.response.send_message('User not registered ! Use /register command')
 
 
-@client.tree.command(description="Summon players !  |  Common (54.5%)   Rare (40%)   Epic (5%)   Legendary (0.5%)")
-async def summon(interaction: discord.Interaction, number: int):
+@client.tree.command(description="Summon players ! **100 EgoCoins per summon** |  Common (54.5%) Rare (40%) Epic (5%) Legendary (0.5%)")
+async def summon(interaction: discord.Interaction, number_of_summons: int):
     if (verify_if_user_exists(interaction.user.id)):
         doc = users_collection.find_one({"user_id": interaction.user.id})
         ego_coins = doc["ego_coins"]
         items = []
 
-        if (ego_coins <= number*100):
+        if (ego_coins >= number_of_summons*100):
             users_collection.update_one({"user_id": interaction.user.id}, {
-                                        "$set": {"ego_coins": ego_coins - number*100}})
-            for i in range(number):
+                                        "$set": {"ego_coins": ego_coins - number_of_summons*100}})
+            for i in range(number_of_summons):
                 getcard = await roll_summon_category(get_card_rarity())
                 embed = discord.Embed(colour=discord.Colour.red())
                 embed.set_image(url=getcard["card_image"])
                 embed.title = "{}'s summon n°{}".format(
                     interaction.user.name, i+1)
-                embed.set_footer(text="{}/{}".format(i+1, number))
+                embed.set_footer(text="{}/{}".format(i+1, number_of_summons))
                 embed.colour = getcard["color"]
                 users_collection.update_one(
                     {"user_id": interaction.user.id},
@@ -265,16 +247,15 @@ async def summon(interaction: discord.Interaction, number: int):
 
             await interaction.response.send_message(embed=items[0], view=Carousel(items))
 
-            await interaction.channel.send("{}, you have now **{}** EgoCoins left !".format(interaction.user.mention, doc['ego_coins']-number*100))
+            await interaction.channel.send("{}, {} *EgoCoins used*. You have now **{}** *EgoCoins left* !".format(interaction.user.mention, number_of_summons*100, doc['ego_coins']-number_of_summons*100))
         else:
-            await interaction.response.send_message('Not enough credits. You have **{}** EgoCoins !'.format(doc['ego_coins']))
+            await interaction.response.send_message('Not enough credits. You have **{}** *EgoCoins* !'.format(doc['ego_coins']))
     else:
         await interaction.response.send_message('User not registered ! Use /register command')
 
 
-@client.tree.command()
+@client.tree.command(description="Show current banner !")
 async def banner(interaction: discord.Interaction):
-    """Show current banner !"""
     doc = cards_collection.find()
     embeds = []
 
@@ -288,9 +269,8 @@ async def banner(interaction: discord.Interaction):
 
     for card in cards_with_rating:
         embed = discord.Embed()
-        embed.title = card[0]["name"].capitalize()
+        embed.title = card[0]["rarity"].capitalize()
         embed.set_image(url=card[0]["card_image"])
-        embed.description = card[0]["rarity"].capitalize()
         embed.colour = get_color(card[0]["rarity"])
         embeds.append(embed)
 
