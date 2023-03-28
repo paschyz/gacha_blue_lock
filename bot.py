@@ -244,6 +244,8 @@ async def summon(interaction: discord.Interaction, number: int):
     if (verify_if_user_exists(interaction.user.id)):
         doc = users_collection.find_one({"user_id": interaction.user.id})
         ego_coins = doc["ego_coins"]
+        items = []
+
         if (ego_coins <= number*100):
             users_collection.update_one({"user_id": interaction.user.id}, {
                                         "$set": {"ego_coins": ego_coins - number*100}})
@@ -255,13 +257,15 @@ async def summon(interaction: discord.Interaction, number: int):
                     interaction.user.name, i+1)
                 embed.set_footer(text="{}/{}".format(i+1, number))
                 embed.colour = getcard["color"]
-
-                await interaction.channel.send(embed=embed)
                 users_collection.update_one(
                     {"user_id": interaction.user.id},
                     {"$push": {"dropped_images": getcard["name"].lower()}}
                 )
-            await interaction.response.send_message("{}, you have now **{}** EgoCoins left !".format(interaction.user.mention, doc['ego_coins']-number*100))
+                items.append(embed)
+
+            await interaction.response.send_message(embed=items[0], view=Carousel(items))
+
+            await interaction.channel.send("{}, you have now **{}** EgoCoins left !".format(interaction.user.mention, doc['ego_coins']-number*100))
         else:
             await interaction.response.send_message('Not enough credits. You have **{}** EgoCoins !'.format(doc['ego_coins']))
     else:
