@@ -28,8 +28,8 @@ def random_card():
 # users_collection.update_many({}, {"$set": {"dropped_images": []}})
 # users_collection.insert_one(
 #             {"user_id": 244491875241820171, "username": "PokSoul#9773","dropped_images":[], "command_used": False, })
-users_collection.update_many(
-    {}, {"$set": {"dropped_images": []}})
+# users_collection.update_many(
+#     {}, {"$set": {"dropped_images": []}})
 
 # doc = users_collection.find_one({"user_id": 244491875241820172})
 # if doc is None:
@@ -39,5 +39,6 @@ users_collection.update_many(
 # else:
 #     print("User already registered !")
 
+users_collection.update_many({}, {"$set": {"ego_coins": 0}})
 print("test")
 # empty all dropped_images arrays
