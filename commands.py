@@ -32,9 +32,9 @@ def setup_commands(client: MyClient):
                 users_collection.update_one({"user_id": user.id}, {
                                             "$set": {"ego_coins": ego_coins+amount}})
                 if (amount > 0):
-                    await interaction.response.send_message('**{}** *EgoCoins* given to {} !'.format(amount, interaction.user.mention))
+                    await interaction.response.send_message('**{}** *EgoCoins* given to {} !'.format(amount, user.mention))
                 else:
-                    await interaction.response.send_message('**{}** *EgoCoins* removed from {} !'.format(amount, interaction.user.mention))
+                    await interaction.response.send_message('**{}** *EgoCoins* removed from {} !'.format(amount, user.mention))
 
             else:
 
