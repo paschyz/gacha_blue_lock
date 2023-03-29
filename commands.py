@@ -1,4 +1,4 @@
-from config import guild_id_dev, guild_id_test_bot, guild_id_blue, mongo_db_key
+from config import mongo_db_key
 from utils import *
 from carousel import Carousel
 from client import MyClient

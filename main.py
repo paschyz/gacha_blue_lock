@@ -4,4 +4,4 @@ from commands import setup_commands
 
 client = MyClient(intents=intents)
 setup_commands(client)
-client.run(discord_bot_key_test)
+client.run(discord_bot_key)

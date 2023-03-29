@@ -11,9 +11,9 @@ mongo_db_key = os.getenv("MONGO_DB_KEY")
 
 guild_id_dev = os.getenv("GUILD_ID_DEV")
 guild_id_test_bot = os.getenv("GUILD_ID_TEST_BOT")
-guild_id_blue = os.getenv("GUILD_ID_BLUE")
+guild_id_blue_lock = os.getenv("GUILD_ID_BLUE_LOCK")
 
-MY_GUILD = discord.Object(id=guild_id_test_bot)
+MY_GUILD = discord.Object(id=guild_id_blue_lock)
 
 client_mongo = MongoClient(
     mongo_db_key)
