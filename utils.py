@@ -7,20 +7,40 @@ def get_random_float():
     return round(random.uniform(0.00, 100.00), 2)
 
 
-def verify_if_user_exists(user_id):
-    doc = users_collection.find_one({"user_id": user_id})
+async def verify_if_user_interaction_exists(interaction: discord.Interaction, user: discord.User):
+    doc = users_collection.find_one({"user_id": interaction.user.id})
     if doc is None:
+        await interaction.response.send_message('{}, you are not registered !'.format(interaction.user.mention))
         return False
     else:
         return True
 
 
-def verify_user_inventory(user_id):
-    doc = users_collection.find_one({"user_id": user_id})
-    if "dropped_images" in doc and len(doc["dropped_images"]) > 0:
-        return True
-    else:
+async def verify_if_user_interaction_not_exists(interaction: discord.Interaction, user: discord.User):
+    doc = users_collection.find_one({"user_id": interaction.user.id})
+    if doc is not None:
+        await interaction.response.send_message('{}, you are already registered !'.format(interaction.user.mention))
         return False
+    else:
+        return True
+
+
+async def verify_if_user_mentionned_exists(interaction: discord.Interaction, user: discord.User):
+    doc = users_collection.find_one({"user_id": user.id})
+    if doc is None:
+        await interaction.response.send_message('Mentionned user {} is not registered !'.format(user.mention))
+        return False
+    else:
+        return True
+
+
+async def verify_user_inventory(interaction: discord.Integration, user: discord.User):
+    doc = users_collection.find_one({"user_id": user.id})
+    if "dropped_images" in doc and len(doc["dropped_images"]) == 0:
+        await interaction.response.send_message('{}, your inventory is empty !'.format(user.mention))
+        return False
+    else:
+        return True
 
 
 def get_card_rarity():
