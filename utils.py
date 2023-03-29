@@ -7,7 +7,7 @@ def get_random_float():
     return round(random.uniform(0.00, 100.00), 2)
 
 
-async def verify_if_user_interaction_exists(interaction: discord.Interaction, user: discord.User):
+async def verify_if_user_interaction_exists(interaction: discord.Interaction):
     doc = users_collection.find_one({"user_id": interaction.user.id})
     if doc is None:
         await interaction.response.send_message('{}, you are not registered !'.format(interaction.user.mention))
@@ -16,7 +16,7 @@ async def verify_if_user_interaction_exists(interaction: discord.Interaction, us
         return True
 
 
-async def verify_if_user_interaction_not_exists(interaction: discord.Interaction, user: discord.User):
+async def verify_if_user_interaction_not_exists(interaction: discord.Interaction):
     doc = users_collection.find_one({"user_id": interaction.user.id})
     if doc is not None:
         await interaction.response.send_message('{}, you are already registered !'.format(interaction.user.mention))
@@ -34,10 +34,34 @@ async def verify_if_user_mentionned_exists(interaction: discord.Interaction, use
         return True
 
 
-async def verify_user_inventory(interaction: discord.Integration, user: discord.User):
-    doc = users_collection.find_one({"user_id": user.id})
+async def verify_user_inventory(interaction: discord.Interaction):
+    doc = users_collection.find_one({"user_id": interaction.user.id})
     if "dropped_images" in doc and len(doc["dropped_images"]) == 0:
-        await interaction.response.send_message('{}, your inventory is empty !'.format(user.mention))
+        await interaction.response.send_message('{}, your inventory is empty !'.format(interaction.user.mention))
+        return False
+    else:
+        return True
+
+
+async def verify_summon_number_inferior_to_100(interaction: discord.Interaction, number: int):
+    if number >= 100:
+        await interaction.response.send_message('{}, you can\'t summon more than 100 cards at once ! (99 max)'.format(interaction.user.mention))
+        return False
+    else:
+        return True
+
+
+async def verify_summon_number_positive(interaction: discord.Interaction, number: int):
+    if number <= 0:
+        await interaction.response.send_message('{}, you can\'t summon 0 or less cards !'.format(interaction.user.mention))
+        return False
+    else:
+        return True
+
+
+async def verify_give_credits_number_positive(interaction: discord.Interaction, number: int):
+    if number <= 0:
+        await interaction.response.send_message('{}, you can\'t give 0 or less credits !'.format(interaction.user.mention))
         return False
     else:
         return True

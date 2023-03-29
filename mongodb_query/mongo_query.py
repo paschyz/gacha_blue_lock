@@ -39,6 +39,6 @@ def random_card():
 # else:
 #     print("User already registered !")
 
-users_collection.update_many({}, {"$set": {"ego_coins": 100}})
+users_collection.update_many({}, {"$set": {"ego_coins": 400}})
 print("test")
 # empty all dropped_images arrays

@@ -16,22 +16,25 @@ def setup_commands(client: MyClient):
     async def on_ready():
         print('Logged in as {0.user}!'.format(client))
 
-    @client.tree.command(description="Give credits ! Only for admins !")
+    @client.tree.command(description="Only for admins ! Give credits !")
     async def give_credits(interaction: discord.Interaction, amount: int, user: Optional[discord.User] = None):
-        if not await verify_if_user_interaction_exists(interaction, interaction.user):
+        if not await verify_if_user_interaction_exists(interaction):
+            return
             return
         required_role = discord.utils.get(
             interaction.guild.roles, name='Admin')
         if required_role in interaction.user.roles:
             if (user != None):
-
                 if not await verify_if_user_mentionned_exists(interaction, user):
                     return
                 doc = users_collection.find_one({"user_id": user.id})
                 ego_coins = doc["ego_coins"]
-                users_collection.update_one({"user_id": user_id}, {
+                users_collection.update_one({"user_id": user.id}, {
                                             "$set": {"ego_coins": ego_coins+amount}})
-                await interaction.response.send_message('**{}** *EgoCoins* given to {} !'.format(amount, interaction.user.mention))
+                if (amount > 0):
+                    await interaction.response.send_message('**{}** *EgoCoins* given to {} !'.format(amount, interaction.user.mention))
+                else:
+                    await interaction.response.send_message('**{}** *EgoCoins* removed from {} !'.format(amount, interaction.user.mention))
 
             else:
 
@@ -47,7 +50,7 @@ def setup_commands(client: MyClient):
     @client.tree.command(description="Conquer this world with your ego !")
     async def register(interaction: discord.Interaction):
         doc = users_collection.find_one({"user_id": interaction.user.id})
-        if not await verify_if_user_interaction_not_exists(interaction, interaction.user):
+        if not await verify_if_user_interaction_not_exists(interaction):
             return
         user_id = interaction.user.id
         user = str(interaction.user)
@@ -57,16 +60,16 @@ def setup_commands(client: MyClient):
 
     @client.tree.command(description="Shows your EgoCoins !")
     async def balance(interaction: discord.Interaction):
-        if not await verify_if_user_interaction_exists(interaction, interaction.user):
+        if not await verify_if_user_interaction_exists(interaction):
             return
         doc = users_collection.find_one({"user_id": interaction.user.id})
         await interaction.response.send_message('{}, you have **{}** *EgoCoins* !'.format(interaction.user.mention, doc['ego_coins']))
 
     @client.tree.command(description="Shows your inventory !")
-    async def inventory(interaction: discord.Integration):
-        if not await verify_if_user_interaction_exists(interaction, interaction.user):
+    async def inventory(interaction: discord.Interaction):
+        if not await verify_if_user_interaction_exists(interaction):
             return
-        if not await verify_user_inventory(interaction, interaction.user):
+        if not await verify_user_inventory(interaction):
             return
         items = []
         doc = users_collection.find_one(
@@ -101,7 +104,7 @@ def setup_commands(client: MyClient):
 
     @client.tree.command(description="Reroll your account !    WARNING : This will delete your inventory and all you ressources !")
     async def reroll(interaction: discord.Interaction):
-        if not await verify_if_user_interaction_exists(interaction, interaction.user):
+        if not await verify_if_user_interaction_exists(interaction):
             return
         users_collection.update_one(
             {"user_id": interaction.user.id}, {"$set": {"ego_coins": 400, "dropped_images": []}})
@@ -109,7 +112,11 @@ def setup_commands(client: MyClient):
 
     @client.tree.command(description="Summon players ! **100 EgoCoins per summon** |  Common (54.5%) Rare (40%) Epic (5%) Legendary (0.5%)")
     async def summon(interaction: discord.Interaction, number_of_summons: int):
-        if not await verify_if_user_interaction_exists(interaction, interaction.user):
+        if not await verify_if_user_interaction_exists(interaction):
+            return
+        if not await verify_summon_number_inferior_to_100(interaction, number_of_summons):
+            return
+        if not await verify_summon_number_positive(interaction, number_of_summons):
             return
         doc = users_collection.find_one({"user_id": interaction.user.id})
         ego_coins = doc["ego_coins"]
