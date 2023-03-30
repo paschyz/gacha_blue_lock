@@ -16,33 +16,6 @@ def setup_commands(client: MyClient):
     async def on_ready():
         print('Logged in as {0.user}!'.format(client))
 
-    @client.tree.command(description="Only for admins ! Give credits !")
-    async def give_credits(interaction: discord.Interaction, amount: int, user: Optional[discord.User] = None):
-        if not await verify_if_user_interaction_exists(interaction):
-            return
-        if not await verify_if_user_is_admin(interaction):
-            return
-        if (user != None):  # Give credits to a specific user
-            if not await verify_if_user_mentionned_exists(interaction, user):
-                return
-            doc = users_collection.find_one({"user_id": user.id})
-            ego_coins = doc["ego_coins"]
-            users_collection.update_one({"user_id": user.id}, {
-                                        "$set": {"ego_coins": ego_coins+amount}})
-            if (amount > 0):
-                await interaction.response.send_message('**{}** *EgoCoins* given to {} !'.format(amount, user.mention))
-            else:
-                await interaction.response.send_message('**{}** *EgoCoins* removed from {} !'.format(amount, user.mention))
-
-        else:  # Give credits to all users
-
-            for user in users_collection.find():
-                user_id = user["user_id"]
-                ego_coins = user["ego_coins"]
-                users_collection.update_one({"user_id": user_id}, {
-                                            "$set": {"ego_coins": ego_coins+amount}})
-            await interaction.response.send_message('**{}** *EgoCoins* given to all users !'.format(amount))
-
     @client.tree.command(description="Conquer this world with your ego !")
     async def register(interaction: discord.Interaction):
         if not await verify_if_user_interaction_not_exists(interaction):
@@ -164,3 +137,40 @@ def setup_commands(client: MyClient):
         embeds[0].set_footer(
             text=f"{1}/{len(embeds)}")
         await interaction.response.send_message(embed=embeds[0], view=Carousel(embeds))
+
+    @client.tree.command(description="Only for admins ! Give credits !")
+    async def give_credits(interaction: discord.Interaction, amount: int, user: Optional[discord.User] = None):
+        if not await verify_if_user_is_admin(interaction):
+            return
+        if (user != None):  # Give credits to a specific user
+            if not await verify_if_user_mentionned_exists(interaction, user):
+                return
+            doc = users_collection.find_one({"user_id": user.id})
+            ego_coins = doc["ego_coins"]
+            users_collection.update_one({"user_id": user.id}, {
+                                        "$set": {"ego_coins": ego_coins+amount}})
+            if (amount > 0):
+                await interaction.response.send_message('**{}** *EgoCoins* given to {} !'.format(amount, user.mention))
+            else:
+                await interaction.response.send_message('**{}** *EgoCoins* removed from {} !'.format(amount, user.mention))
+
+        else:  # Give credits to all users
+
+            for user in users_collection.find():
+                user_id = user["user_id"]
+                ego_coins = user["ego_coins"]
+                users_collection.update_one({"user_id": user_id}, {
+                                            "$set": {"ego_coins": ego_coins+amount}})
+            await interaction.response.send_message('**{}** *EgoCoins* given to all users !'.format(amount))
+
+    @client.tree.command(description="Only for admins ! Give cards !")
+    async def give_card(interaction: discord.Interaction, card_name: str, user: discord.User = None):
+        if not await verify_if_user_mentionned_exists(interaction, user):
+            return
+        if not await verify_if_user_is_admin(interaction):
+            return
+        if not await verify_if_card_exists(interaction, card_name):
+            return
+        users_collection.update_one({"user_id": user.id}, {
+                                    "$push": {"dropped_images": card_name}})
+        await interaction.response.send_message('**{}** given to {} !'.format(card_name.capitalize(), user.mention))

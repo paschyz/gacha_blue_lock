@@ -77,6 +77,15 @@ async def verify_if_user_is_admin(interaction: discord.Interaction):
         return False
 
 
+async def verify_if_card_exists(interaction: discord.Interaction, card_name: str):
+    doc = cards_collection.find_one({"name": card_name})
+    if doc is None:
+        await interaction.response.send_message('{}, this card does not exist !'.format(interaction.user.mention))
+        return False
+    else:
+        return True
+
+
 def get_card_rarity():
     randFloat = get_random_float()
     if randFloat <= 0.5:  # 0.5%
