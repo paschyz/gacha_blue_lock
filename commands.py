@@ -20,7 +20,7 @@ def setup_commands(client: MyClient):
     async def give_credits(interaction: discord.Interaction, amount: int, user: Optional[discord.User] = None):
         if not await verify_if_user_interaction_exists(interaction):
             return
-        if await verify_if_user_is_admin(interaction):
+        if not await verify_if_user_is_admin(interaction):
             return
         if (user != None):  # Give credits to a specific user
             if not await verify_if_user_mentionned_exists(interaction, user):
