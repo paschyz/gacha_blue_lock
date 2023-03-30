@@ -67,6 +67,16 @@ async def verify_give_credits_number_positive(interaction: discord.Interaction, 
         return True
 
 
+async def verify_if_user_is_admin(interaction: discord.Interaction):
+    required_role = discord.utils.get(
+        interaction.guild.roles, name='Admin')
+    if required_role in interaction.user.roles:
+        return True
+    else:
+        await interaction.response.send_message('{} you are not an admin ! You are not authorized to use this command !'.format(interaction.user.mention))
+        return False
+
+
 def get_card_rarity():
     randFloat = get_random_float()
     if randFloat <= 0.5:  # 0.5%

@@ -20,36 +20,31 @@ def setup_commands(client: MyClient):
     async def give_credits(interaction: discord.Interaction, amount: int, user: Optional[discord.User] = None):
         if not await verify_if_user_interaction_exists(interaction):
             return
+        if await verify_if_user_is_admin(interaction):
             return
-        required_role = discord.utils.get(
-            interaction.guild.roles, name='Admin')
-        if required_role in interaction.user.roles:
-            if (user != None):
-                if not await verify_if_user_mentionned_exists(interaction, user):
-                    return
-                doc = users_collection.find_one({"user_id": user.id})
-                ego_coins = doc["ego_coins"]
-                users_collection.update_one({"user_id": user.id}, {
-                                            "$set": {"ego_coins": ego_coins+amount}})
-                if (amount > 0):
-                    await interaction.response.send_message('**{}** *EgoCoins* given to {} !'.format(amount, user.mention))
-                else:
-                    await interaction.response.send_message('**{}** *EgoCoins* removed from {} !'.format(amount, user.mention))
-
+        if (user != None):  # Give credits to a specific user
+            if not await verify_if_user_mentionned_exists(interaction, user):
+                return
+            doc = users_collection.find_one({"user_id": user.id})
+            ego_coins = doc["ego_coins"]
+            users_collection.update_one({"user_id": user.id}, {
+                                        "$set": {"ego_coins": ego_coins+amount}})
+            if (amount > 0):
+                await interaction.response.send_message('**{}** *EgoCoins* given to {} !'.format(amount, user.mention))
             else:
+                await interaction.response.send_message('**{}** *EgoCoins* removed from {} !'.format(amount, user.mention))
 
-                for user in users_collection.find():
-                    user_id = user["user_id"]
-                    ego_coins = user["ego_coins"]
-                    users_collection.update_one({"user_id": user_id}, {
-                                                "$set": {"ego_coins": ego_coins+amount}})
-                await interaction.response.send_message('**{}** *EgoCoins* given to all users !'.format(amount))
-        else:
-            await interaction.response.send_message('{} you are not an admin ! You are not authorized to use this command !'.format(interaction.user.mention))
+        else:  # Give credits to all users
+
+            for user in users_collection.find():
+                user_id = user["user_id"]
+                ego_coins = user["ego_coins"]
+                users_collection.update_one({"user_id": user_id}, {
+                                            "$set": {"ego_coins": ego_coins+amount}})
+            await interaction.response.send_message('**{}** *EgoCoins* given to all users !'.format(amount))
 
     @client.tree.command(description="Conquer this world with your ego !")
     async def register(interaction: discord.Interaction):
-        doc = users_collection.find_one({"user_id": interaction.user.id})
         if not await verify_if_user_interaction_not_exists(interaction):
             return
         user_id = interaction.user.id
@@ -58,7 +53,7 @@ def setup_commands(client: MyClient):
             {"user_id": user_id, "username": user, "ego_coins": 400, "dropped_images": []})
         await interaction.response.send_message('Register complete {}, Welcome !'.format(interaction.user.mention))
 
-    @client.tree.command(description="Shows your EgoCoins !")
+    @client.tree.command(description="Shows your *EgoCoins* !")
     async def balance(interaction: discord.Interaction):
         if not await verify_if_user_interaction_exists(interaction):
             return
@@ -142,7 +137,7 @@ def setup_commands(client: MyClient):
 
             await interaction.response.send_message(embed=items[0], view=Carousel(items))
 
-            await interaction.channel.send("{}, {} *EgoCoins used*. You have now **{}** *EgoCoins left* !".format(interaction.user.mention, number_of_summons*100, doc['ego_coins']-number_of_summons*100))
+            await interaction.channel.send("{}, **{}** *EgoCoins used*. You have now **{}** *EgoCoins left* !".format(interaction.user.mention, number_of_summons*100, doc['ego_coins']-number_of_summons*100))
         else:
             await interaction.response.send_message('Not enough credits. You have **{}** *EgoCoins* !'.format(doc['ego_coins']))
 
