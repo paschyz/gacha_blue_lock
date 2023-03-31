@@ -9,6 +9,8 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 import random
 
+from collections import Counter
+
 load_dotenv()
 mongo_db_key = os.getenv("MONGO_DB_KEY")
 client_mongo = MongoClient(
@@ -25,5 +27,31 @@ def random_card():
     print(random_card["name"])
 
 
-users_collection.update_many({}, {"$set": {"team": []}})
-print("done")
+user_id = 563780320810237952  # Replace this with the user ID you want to query
+
+user_doc = users_collection.find_one({"user_id": user_id})
+dropped_images = user_doc["dropped_images"]
+
+counter = Counter(dropped_images)
+duplicates = {card: count for card, count in counter.items() if count > 1}
+
+if not duplicates:
+    print(f"User {user_id} has no duplicates.")
+else:
+    credit_total = 0
+    print(f"User {user_id} has the following duplicates:")
+
+    for card, count in duplicates.items():
+        # Subtract one to exclude the first occurrence of the card
+        duplicate_count = count - 1
+        card_data = cards_collection.find_one(
+            {"name": card})  # Get the card data by its name
+        card_rarity = card_data["rarity"]
+        credit_value = get_credit_rarity(card_rarity)
+        credit_total += duplicate_count * credit_value
+
+        print(
+            f"Card: {card}, Rarity: {card_rarity}, Duplicates: {duplicate_count}, EgoCoins per duplicate: {credit_value}")
+
+    print(
+        f"Total EgoCoins to be given to user {user_id} for duplicates: {credit_total}")

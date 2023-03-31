@@ -7,7 +7,6 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-
 ## perso ##
 stats.txt
 card.json
@@ -17,12 +16,10 @@ img/logo/
 *img/
 *images/
 ratings.txt
-
-mongodb_query/*
 # C extensions
 *.so
 json
-
+main.py
 mongo_query.py
 # Distribution / packaging
 .Python
@@ -183,3 +180,5 @@ poetry.toml
 
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+/mongodb_query
+mongodb_query/mongo_query.py
