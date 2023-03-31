@@ -14,10 +14,16 @@ card.json
 img/png/
 img/discord_bot/
 img/logo/
+*img/
+*images/
 ratings.txt
+
+mongodb_query/*
 # C extensions
 *.so
 json
+
+mongo_query.py
 # Distribution / packaging
 .Python
 build/
