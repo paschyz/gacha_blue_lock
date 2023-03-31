@@ -1,4 +1,4 @@
-from config import mongo_db_key
+from config import mongo_db_key, admin_id
 from utils import *
 from carousel import Carousel
 from client import MyClient
@@ -12,9 +12,31 @@ cards_collection = db["cards"]
 
 
 def setup_commands(client: MyClient):
+
     @client.event
     async def on_ready():
         print('Logged in as {0.user}!'.format(client))
+
+    @client.tree.command(description="Shows the list of available commands and their descriptions.")
+    async def help(interaction: discord.Interaction):
+        commands = {
+            "register": "Conquer this world with your ego !",
+            "balance": "Shows your *EgoCoins*",
+            "inventory": "Shows your inventory",
+            "summon": "Summon cards ! \n Costs **100** *EgoCoins* per summon \n Common *(54.5%)* | Rare *(40%)* | Epic *(5%)* | Legendary *(0.5%)*",
+            "banner": "Shows current banner",
+            "reroll": "**[WARNING : This will delete all your cards/ressources.]** \n You will have **400 ** *EgoCoins* on reroll",
+            "give_credits": "**[ADMIN ONLY]** Give credits !",
+            "give_card": "**[ADMIN ONLY]** Give cards !",
+        }
+        embed = discord.Embed(
+            title="Help", description="Available commands:", color=discord.Colour.blue())
+
+        for command, description in commands.items():
+            embed.add_field(name=f"/{command}",
+                            value=description, inline=False)
+
+        await interaction.response.send_message(embed=embed)
 
     @client.tree.command(description="Conquer this world with your ego !")
     async def register(interaction: discord.Interaction):
@@ -26,14 +48,14 @@ def setup_commands(client: MyClient):
             {"user_id": user_id, "username": user, "ego_coins": 400, "dropped_images": []})
         await interaction.response.send_message('Register complete {}, Welcome !'.format(interaction.user.mention))
 
-    @client.tree.command(description="Shows your *EgoCoins* !")
+    @client.tree.command(description="Shows your EgoCoins")
     async def balance(interaction: discord.Interaction):
         if not await verify_if_user_interaction_exists(interaction):
             return
         doc = users_collection.find_one({"user_id": interaction.user.id})
         await interaction.response.send_message('{}, you have **{}** *EgoCoins* !'.format(interaction.user.mention, doc['ego_coins']))
 
-    @client.tree.command(description="Shows your inventory !")
+    @client.tree.command(description="Shows your inventory")
     async def inventory(interaction: discord.Interaction):
         if not await verify_if_user_interaction_exists(interaction):
             return
@@ -70,15 +92,7 @@ def setup_commands(client: MyClient):
             text=f"{1}/{len(items)}")
         await interaction.response.send_message(embed=items[0], view=carousel)
 
-    @client.tree.command(description="Reroll your account !    WARNING : This will delete your inventory and all you ressources !")
-    async def reroll(interaction: discord.Interaction):
-        if not await verify_if_user_interaction_exists(interaction):
-            return
-        users_collection.update_one(
-            {"user_id": interaction.user.id}, {"$set": {"ego_coins": 400, "dropped_images": []}})
-        await interaction.response.send_message('Reroll complete {} !'.format(interaction.user.mention))
-
-    @client.tree.command(description="Summon players ! **100 EgoCoins per summon** |  Common (54.5%) Rare (40%) Epic (5%) Legendary (0.5%)")
+    @client.tree.command(description="Summon cards ! [100 EgoCoins/summon] Common (54.5%) | Rare (40%) | Epic (5%) | Legendary (0.5%)")
     async def summon(interaction: discord.Interaction, number_of_summons: int):
         if not await verify_if_user_interaction_exists(interaction):
             return
@@ -89,32 +103,47 @@ def setup_commands(client: MyClient):
         doc = users_collection.find_one({"user_id": interaction.user.id})
         ego_coins = doc["ego_coins"]
         items = []
-
+        credits_to_refund = 0
         if (ego_coins >= number_of_summons*100):
-            users_collection.update_one({"user_id": interaction.user.id}, {
-                                        "$set": {"ego_coins": ego_coins - number_of_summons*100}})
+
             for i in range(number_of_summons):
+                doc = users_collection.find_one(
+                    {"user_id": interaction.user.id})  # Refresh doc
                 getcard = await roll_summon_category(get_card_rarity())
-                embed = discord.Embed(colour=discord.Colour.red())
+                embed = discord.Embed()
                 embed.set_image(url=getcard["card_image"])
                 embed.title = "{}'s summon n°{}".format(
                     interaction.user.name, i+1)
                 embed.set_footer(
                     text="{}/{}".format(i+1, number_of_summons))
                 embed.colour = getcard["color"]
-                users_collection.update_one(
-                    {"user_id": interaction.user.id},
-                    {"$push": {"dropped_images": getcard["name"].lower()}}
-                )
+                embed.description = "New player **{}** dropped ! ({})".format(
+                    getcard["name"].capitalize(), getcard["rarity"])
+                if (getcard["name"]) in doc['dropped_images']:
+                    credits_refunded = get_credit_rarity(getcard["rarity"])
+                    credits_to_refund += credits_refunded
+                    embed.description = "**{}** *EgoCoins* refunded. (Duplicate) ".format(
+                        credits_refunded)
+                else:
+                    users_collection.update_one(
+                        {"user_id": interaction.user.id},
+                        {"$push": {"dropped_images": getcard["name"].lower()}}
+                    )
                 items.append(embed)
-
+            new_ego_coins = ego_coins - number_of_summons*100 + credits_to_refund
+            users_collection.update_one({"user_id": interaction.user.id}, {
+                                        "$set": {"ego_coins": new_ego_coins}})
             await interaction.response.send_message(embed=items[0], view=Carousel(items))
-
-            await interaction.channel.send("{}, **{}** *EgoCoins used*. You have now **{}** *EgoCoins left* !".format(interaction.user.mention, number_of_summons*100, doc['ego_coins']-number_of_summons*100))
+            await interaction.channel.send("**{}** *EgoCoins used*.".format(number_of_summons*100))
+            await interaction.channel.send("**{}** *EgoCoins refunded*.".format(credits_to_refund))
+            await interaction.channel.send("{}, You have now **{}** *EgoCoins left* !".format(interaction.user.mention, new_ego_coins))
         else:
             await interaction.response.send_message('Not enough credits. You have **{}** *EgoCoins* !'.format(doc['ego_coins']))
 
-    @client.tree.command(description="Show current banner !")
+    # @client.tree.command(description="View and edit your team")
+    # async def team(interaction: discord.Interaction):
+
+    @client.tree.command(description="Shows current banner")
     async def banner(interaction: discord.Interaction):
         doc = cards_collection.find()
         embeds = []
@@ -138,7 +167,19 @@ def setup_commands(client: MyClient):
             text=f"{1}/{len(embeds)}")
         await interaction.response.send_message(embed=embeds[0], view=Carousel(embeds))
 
-    @client.tree.command(description="Only for admins ! Give credits !")
+    @client.tree.command(description="[WARNING : This will delete all your cards/ressources.] You will have 400 EgoCoins on reroll")
+    async def reroll(interaction: discord.Interaction):
+        if not await verify_if_user_interaction_exists(interaction):
+            return
+        if (interaction.user.id == int(admin_id)):
+            ego_coins_amount = 999999999
+        else:
+            ego_coins_amount = 500
+        users_collection.update_one(
+            {"user_id": interaction.user.id}, {"$set": {"ego_coins": ego_coins_amount, "dropped_images": []}})
+        await interaction.response.send_message('Reroll complete {} ! **{}** *EgoCoins* have been credited to your balance.'.format(interaction.user.mention, ego_coins_amount))
+
+    @client.tree.command(description="[ADMIN ONLY] Give credits !")
     async def give_credits(interaction: discord.Interaction, amount: int, user: Optional[discord.User] = None):
         if not await verify_if_user_is_admin(interaction):
             return
@@ -150,9 +191,9 @@ def setup_commands(client: MyClient):
             users_collection.update_one({"user_id": user.id}, {
                                         "$set": {"ego_coins": ego_coins+amount}})
             if (amount > 0):
-                await interaction.response.send_message('**{}** *EgoCoins* given to {} !'.format(amount, user.mention))
+                await interaction.response.send_message('**{}** *EgoCoins* given to {} ! Balance is now **{}** *EgoPoints*.'.format(amount, user.mention, doc['ego_coins']+amount))
             else:
-                await interaction.response.send_message('**{}** *EgoCoins* removed from {} !'.format(amount, user.mention))
+                await interaction.response.send_message('**{}** *EgoCoins* removed from {} ! Balance is now **{}** *EgoPoints*.'.format(amount, user.mention, doc['ego_coins']+amount))
 
         else:  # Give credits to all users
 
@@ -163,8 +204,8 @@ def setup_commands(client: MyClient):
                                             "$set": {"ego_coins": ego_coins+amount}})
             await interaction.response.send_message('**{}** *EgoCoins* given to all users !'.format(amount))
 
-    @client.tree.command(description="Only for admins ! Give cards !")
-    async def give_card(interaction: discord.Interaction, card_name: str, user: discord.User = None):
+    @client.tree.command(description="[ADMIN ONLY] Give cards !")
+    async def give_card(interaction: discord.Interaction, card_name: str, user: discord.User):
         if not await verify_if_user_mentionned_exists(interaction, user):
             return
         if not await verify_if_user_is_admin(interaction):

@@ -17,7 +17,7 @@ img/logo/
 ratings.txt
 # C extensions
 *.so
-
+json
 # Distribution / packaging
 .Python
 build/

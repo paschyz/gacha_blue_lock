@@ -108,9 +108,22 @@ async def roll_summon_category(rarity):
     cards = list(cardsQuery)
     random_card = random.choice(cards)
     get_color(rarity)
-    card = {"name": random_card["name"].capitalize(), "rarity": random_card["rarity"].capitalize(),
+    card = {"name": random_card["name"], "rarity": random_card["rarity"].capitalize(),
             "card_image": random_card["card_image"], "color": get_color(rarity)}
     return card
+
+
+def get_credit_rarity(rarity):
+    if (rarity == "Legendary"):
+        return 1000
+    if (rarity == "Epic"):
+        return 300
+    if (rarity == "Rare"):
+        return 25
+    if (rarity == "Common"):
+        return 10
+    else:
+        return 0
 
 
 def get_color(rarity):
