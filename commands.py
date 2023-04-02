@@ -140,8 +140,24 @@ def setup_commands(client: MyClient):
         else:
             await interaction.response.send_message('Not enough credits. You have **{}** *EgoCoins* !'.format(doc['ego_coins']))
 
-    # @client.tree.command(description="View and edit your team")
-    # async def team(interaction: discord.Interaction):
+    @client.tree.command(description="View and edit your team")
+    async def team(interaction: discord.Interaction):
+        if not await verify_if_user_interaction_exists(interaction):
+            return
+        if not await verify_user_inventory(interaction):
+            return
+
+    @client.tree.command(description="Redeem daily EgoCoins")
+    async def daily(interaction: discord.Interaction):
+        if not await verify_if_user_interaction_exists(interaction):
+            return
+        doc = users_collection.find_one({"user_id": interaction.user.id})
+        if doc["daily_used"]:
+            await interaction.response.send_message("{}, you have already redeemed your daily *EgoCoins* !".format(interaction.user.mention))
+        else:
+            users_collection.update_one({"user_id": interaction.user.id}, {
+                                        "$set": {"daily_used": True, "ego_coins": doc["ego_coins"]+200}})
+            await interaction.response.send_message("{}, you have received **200** *EgoCoins* ! Your balance is now **{}** *EgoCoins*".format(interaction.user.mention, doc["ego_coins"]+200))
 
     @client.tree.command(description="Shows current banner")
     async def banner(interaction: discord.Interaction):
