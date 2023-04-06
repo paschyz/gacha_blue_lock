@@ -10,6 +10,24 @@ db = client_mongo["BlueLOCK"]
 users_collection = db["users"]
 cards_collection = db["cards"]
 
+cages_top = "------------------------------------\ ............................/ ------------------------------------"
+columns = "|                              |                              |                              |                              |                              |"
+rows = "-----------------------------------------------------------------------------------------------"
+cages_bottom = "------------------------------------ /............................\ ------------------------------------"
+
+
+def create_and_display_grid(player_positions):
+    width = 5
+    height = 5
+    grid = [["[ ]" for _ in range(width)] for _ in range(height)]
+
+    for player_name, position in player_positions.items():
+        x, y = position
+        grid[y][x] = f"[{player_name}]"
+
+    grid_str = "\n".join("".join(row) for row in grid)
+    return grid_str
+
 
 def setup_commands(client: MyClient):
 
@@ -146,6 +164,30 @@ def setup_commands(client: MyClient):
             return
         if not await verify_user_inventory(interaction):
             return
+
+    @client.tree.command(description="View and edit your team")
+    async def embed(interaction: discord.Interaction):
+        # Créez un dictionnaire pour stocker les positions des joueurs
+        emoji_name = "bachira_suit_pcmin"
+        for emoji in client.emojis:
+            if emoji.name == emoji_name:
+                player_positions = {str(emoji): (2, 2)}
+
+        # Récupération de la représentation sous forme de chaîne de la grille
+        grid_str = create_and_display_grid(player_positions)
+
+        # Envoi de la grille dans un message Discord
+        await interaction.response.send_message(f"```\n{grid_str}\n```")
+        # await interaction.response.send_message(f"```<:bachira_suit_pcmin:1092451361041420389>```")
+
+    @client.tree.command(description="View and edit your team")
+    async def send_emoji(interaction: discord.Interaction):
+        emoji_name = "bachira_suit_pcmin"
+        custom_message = "Here's your emoji: "
+
+        for emoji in client.emojis:
+            if emoji.name == emoji_name:
+                await interaction.response.send_message('[' + str(emoji)+']')
 
     @client.tree.command(description="Redeem daily EgoCoins")
     async def daily(interaction: discord.Interaction):
