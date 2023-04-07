@@ -1,10 +1,11 @@
+import asyncio
 from config import mongo_db_key, admin_id
 from utils import *
-from carousel import Carousel
+from carousel import Carousel, Game
 from client import MyClient
 from pymongo import MongoClient
 from typing import Optional
-
+from asyncio import sleep, wait
 client_mongo = MongoClient(mongo_db_key)
 db = client_mongo["BlueLOCK"]
 users_collection = db["users"]
@@ -164,6 +165,48 @@ def setup_commands(client: MyClient):
             return
         if not await verify_user_inventory(interaction):
             return
+        doc = users_collection.find_one({"user_id": interaction.user.id})
+        items = []
+        for card in doc["team"]:
+            card_doc = cards_collection.find_one({"name": card})
+            url_card = card_doc["card_image"]
+            color = get_color(card_doc["rarity"])
+            rarity = card_doc["name"]
+            embed = discord.Embed(title=f"{interaction.user.name}'s team",
+                                  color=color,
+                                  )
+            embed.set_image(url=url_card)
+            items.append(embed)
+        items[0].set_footer(text=f"{1}/{len(items)}")
+        response = await interaction.response.send_message(embed=items[0], view=Carousel(items))
+
+    @client.tree.command(description="Game")
+    async def game(interaction: discord.Interaction):
+        doc = users_collection.find_one({"user_id": interaction.user.id})
+        players = ()
+        items = []
+        for card in doc["team"]:
+            card_doc = cards_collection.find_one({"name": card})
+            url_card = card_doc["card_image"]
+            color = get_color(card_doc["rarity"])
+            rarity = card_doc["name"]
+            embed = discord.Embed(title=f"{interaction.user.name}'s team",
+                                  color=color,
+                                  )
+            embed.set_image(url=url_card)
+            items.append(embed)
+            player = Player(card_doc["name"], (random.randint(23, 640), random.randint(51, 873)),
+                            "img/"+card_doc["name"]+"_icon.png")
+            players += (player,)
+
+        selected_player = players[0]
+
+        ball = Ball(
+            (selected_player.position[0]-13, selected_player.position[1]+15), "img/ball.png")
+        superposer_images(img_result, field, (players))
+
+        put_ball(img_result, ball.position)
+        await interaction.response.send_message(file=discord.File("image_resultante.png"), view=Game(players, selected_player, ball))
 
     @client.tree.command(description="View and edit your team")
     async def embed(interaction: discord.Interaction):
