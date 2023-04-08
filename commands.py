@@ -178,7 +178,7 @@ def setup_commands(client: MyClient):
             embed.set_image(url=url_card)
             items.append(embed)
         items[0].set_footer(text=f"{1}/{len(items)}")
-        response = await interaction.response.send_message(embed=items[0], view=Carousel(items))
+        await interaction.response.send_message(embed=items[0], view=Carousel(items))
 
     @client.tree.command(description="Game")
     async def game(interaction: discord.Interaction):

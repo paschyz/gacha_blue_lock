@@ -69,7 +69,19 @@ class Game(View):
 
     @discord.ui.button(label="Shoot ⚽", style=discord.ButtonStyle.primary, row=2)
     async def button_shoot(self, interaction: Interaction, button: Button):
-        await interaction.response.send_message("You shot!")
+        random_x = random.randint(240, 440)
+
+        put_ball(img_result,  (random_x, 14))
+        pixels = get_pixels_on_line(self.ball.position, (random_x, 14))
+        intercepted = False
+        for i in pixels:
+            if closest_player(self.players, i) != self.selected_player and closest_player(self.players, i).position in get_pixels_on_circle(i, 15):
+                print("intercepted by : ", closest_player(self.players, i).name)
+                intercepted = True
+                break
+        if (intercepted == False):
+            print("GOAL !")
+        await interaction.response.edit_message(attachments=[discord.File(img_result)])
 
     @discord.ui.button(label="Pass ⚽", style=discord.ButtonStyle.green, row=2)
     async def button_pass(self, interaction: Interaction, button: Button):
@@ -82,4 +94,3 @@ class Game(View):
             img_result, self.ball.position)
 
         await interaction.response.edit_message(attachments=[discord.File(img_result)])
-        await interaction.response.send_message("You passed!")

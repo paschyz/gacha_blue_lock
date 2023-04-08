@@ -82,7 +82,57 @@ def superposer_images(img_result,  field, players):
         img_fond.paste(emoji_paste, final_position, emoji_paste)
         img_fond.save(img_result)
 
-    print("closest player is: ", closest_player(players, (0, 0)).name)
+
+def get_pixels_on_line(point1, point2):
+    """
+    Returns a list of tuples representing all the pixels on a line between two points
+    """
+    x1, y1 = point1
+    x2, y2 = point2
+    dx = abs(x2 - x1)
+    dy = abs(y2 - y1)
+    sx = 1 if x1 < x2 else -1
+    sy = 1 if y1 < y2 else -1
+    err = dx - dy
+    pixels = []
+    while True:
+        pixels.append((x1, y1))
+        if x1 == x2 and y1 == y2:
+            break
+        e2 = 2 * err
+        if e2 > -dy:
+            err -= dy
+            x1 += sx
+        if e2 < dx:
+            err += dx
+            y1 += sy
+    return pixels
+
+
+def get_pixels_on_circle(center, radius):
+    """
+    Returns a list of tuples representing all the pixels on a circle
+    """
+    pixels = []
+    x0, y0 = center
+    x = radius
+    y = 0
+    err = 0
+    while x >= y:
+        pixels.append((x0 + x, y0 + y))
+        pixels.append((x0 + y, y0 + x))
+        pixels.append((x0 - y, y0 + x))
+        pixels.append((x0 - x, y0 + y))
+        pixels.append((x0 - x, y0 - y))
+        pixels.append((x0 - y, y0 - x))
+        pixels.append((x0 + y, y0 - x))
+        pixels.append((x0 + x, y0 - y))
+        y += 1
+        err += 1 + 2*y
+        if 2*(err - x) + 1 > 0:
+            x -= 1
+            err += 1 - 2*x
+    return pixels
 
 
 def closest_player(players, position):
