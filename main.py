@@ -20,4 +20,4 @@ async def daily_task():
 # scheduler.add_job(daily_task, CronTrigger(
 #     hour='23', minute='20', second='10', timezone=paris_tz))
 # scheduler.start()
-client.run(discord_bot_key_test)
+client.run(discord_bot_key)

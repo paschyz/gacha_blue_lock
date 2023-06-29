@@ -154,6 +154,13 @@ def put_ball(img_result,  position):
     ball_paste = Image.open(ball).convert("RGBA").resize((30, 30))
     img_fond.paste(ball_paste, position, ball_paste)
     img_fond.save(img_result)
+
+
+def put_image(img_result, image_path, position):
+    img_fond = Image.open(img_result).convert("RGBA")
+    image = Image.open(image_path).convert("RGBA").resize((2,2))
+    img_fond.paste(image, position, image)
+    img_fond.save(img_result)
 # bachira = Player("Bachira", (23, 51), emoji)
 # rin = Player("Rin", (23, 873), emoji_rin)
 

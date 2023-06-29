@@ -70,17 +70,26 @@ class Game(View):
     @discord.ui.button(label="Shoot ⚽", style=discord.ButtonStyle.primary, row=2)
     async def button_shoot(self, interaction: Interaction, button: Button):
         random_x = random.randint(240, 440)
-
+        interception_image_path = "img/red_circle.png"
         put_ball(img_result,  (random_x, 14))
         pixels = get_pixels_on_line(self.ball.position, (random_x, 14))
         intercepted = False
         for i in pixels:
-            if closest_player(self.players, i) != self.selected_player and closest_player(self.players, i).position in get_pixels_on_circle(i, 15):
-                print("intercepted by : ", closest_player(self.players, i).name)
-                intercepted = True
-                break
-        if (intercepted == False):
-            print("GOAL !")
+            hitbox_radius = 15  # Adjust the hitbox radius as desired
+            closest = closest_player(self.players, i)
+            if closest != self.selected_player:
+                # Adjust player center position
+                player_center_x = closest.position[0] - 13
+                # Adjust player center position
+                player_center_y = closest.position[1] - 15
+                if abs(i[0] - player_center_x) <= hitbox_radius and abs(i[1] - player_center_y) <= hitbox_radius:
+                    print("Intercepted by:", closest.name)
+                    intercepted = True
+                    put_image(img_result, interception_image_path,
+                              (i[0] - hitbox_radius, i[1] - hitbox_radius))
+                    break
+        if not intercepted:
+            print("GOAL!")
         await interaction.response.edit_message(attachments=[discord.File(img_result)])
 
     @discord.ui.button(label="Pass ⚽", style=discord.ButtonStyle.green, row=2)
