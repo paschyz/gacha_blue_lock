@@ -26,33 +26,35 @@ class Carousel(View):
 
 
 class Game(View):
-    def __init__(self,  players, selected_player, ball):
+    def __init__(self,  players, selected_player, ball, match, score_message):
         super().__init__()
         self.players = players
         self.selected_player = selected_player
         self.ball = ball
+        self.match = match
+        self.score_message = score_message
 
     @discord.ui.button(emoji="⬅️")
     async def button_left(self, interaction: Interaction, button: Button):
 
-        self.selected_player.move_left()
-        self.ball.move_left(self.selected_player)
+        self.selected_player.move("left")
+        self.ball.move("left", self.selected_player)
         superposer_images(img_result, field, (self.players))
         put_ball(img_result,  (self.ball.position))
         await interaction.response.edit_message(attachments=[discord.File(img_result)])
 
     @discord.ui.button(emoji="➡️")
     async def button_right(self, interaction: Interaction, button: Button):
-        self.selected_player.move_right()
-        self.ball.move_right(self.selected_player)
+        self.selected_player.move("right")
+        self.ball.move("right", self.selected_player)
         superposer_images(img_result, field, (self.players))
         put_ball(img_result,  (self.ball.position))
         await interaction.response.edit_message(attachments=[discord.File(img_result)])
 
     @discord.ui.button(emoji="⬆️")
     async def button_up(self, interaction: Interaction, button: Button):
-        self.selected_player.move_up()
-        self.ball.move_up(self.selected_player)
+        self.selected_player.move("up")
+        self.ball.move("up", self.selected_player)
 
         superposer_images(img_result, field, (self.players))
 
@@ -61,8 +63,8 @@ class Game(View):
 
     @discord.ui.button(emoji="⬇️")
     async def button_down(self, interaction: Interaction, button: Button):
-        self.selected_player.move_down()
-        self.ball.move_down(self.selected_player)
+        self.selected_player.move("down")
+        self.ball.move("down", self.selected_player)
         superposer_images(img_result, field, (self.players))
         put_ball(img_result,  (self.ball.position))
         await interaction.response.edit_message(attachments=[discord.File(img_result)])
@@ -70,7 +72,7 @@ class Game(View):
     @discord.ui.button(label="Shoot ⚽", style=discord.ButtonStyle.primary, row=2)
     async def button_shoot(self, interaction: Interaction, button: Button):
         random_x = random.randint(240, 440)
-
+        interception_image_path = "img/red_circle.png"
         put_ball(img_result,  (random_x, 14))
         pixels = get_pixels_on_line(self.ball.position, (random_x, 14))
         intercepted = False
@@ -92,7 +94,9 @@ class Game(View):
 
         if intercepted == False:
             # Ball reaches the target position without interception (goal)
-            await interaction.channel.send(content="GOAL !")
+            self.match.team_blue.goal()
+            # await self.score_message.edit(content=f"{self.match.team_blue.score}to{self.match.team_red.score}")
+            await interaction.channel.send(content=f"GOAL by {self.selected_player.name.upper()} ! {self.match.team_blue.score} to {self.match.team_red.score}")
 
         # # Add code to make player hitbox appear
         # img_result_with_hitboxes = Image.open(img_result).convert("RGBA")

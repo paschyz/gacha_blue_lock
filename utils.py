@@ -8,10 +8,20 @@ from PIL import Image
 
 
 class User:
-    def __init__(self, discord_id, name, cards):
+    def __init__(self, discord_id, name, cards_in_team, team):
         self.discord_id = discord_id
         self.name = name
-        self.cards = cards
+        self.cards_in_team = cards_in_team
+        self.team = Team(team, self)
+
+    def position_user_players(self):
+        players = ()
+        for card in self.cards_in_team:
+            card_doc = cards_collection.find_one({"name": card})
+            player = Player(card_doc["name"], (random.randint(23, 640), random.randint(51, 873)), 75, self.team,
+                            "img/"+card_doc["name"]+"_icon.png")
+            players += (player,)
+        return players
 
 
 class Ball:
@@ -20,55 +30,78 @@ class Ball:
         self.emoji = emoji
         self.hitbox = 30
 
-    def move_right(self, player):
-        self.position = (self.position[0] +
-                         player.movement_speed, self.position[1])
+    def move(self, direction, player):
+        if direction == "right":
+            self.position = (
+                self.position[0] + player.movement_speed, self.position[1])
+        elif direction == "left":
+            self.position = (
+                self.position[0] - player.movement_speed, self.position[1])
+        elif direction == "up":
+            self.position = (
+                self.position[0], self.position[1] - player.movement_speed)
+        elif direction == "down":
+            self.position = (
+                self.position[0], self.position[1] + player.movement_speed)
 
-    def move_left(self, player):
-        self.position = (self.position[0] -
-                         player.movement_speed, self.position[1])
 
-    def move_up(self, player):
-        self.position = (
-            self.position[0], self.position[1] - player.movement_speed)
+class Match:
+    def __init__(self, user1, user2) -> None:
+        self.team_blue = Team("blue", user1)
+        self.team_red = Team("red", user2)
 
-    def move_down(self, player):
-        self.position = (
-            self.position[0], self.position[1] + player.movement_speed)
+
+class Team:
+    def __init__(self, name, user_owner):
+        self.name = name
+        self.user_owner = user_owner
+        self.players = []
+        self.score = 0
+
+    def add_player(self):
+        self.players.append(self.user_owner.cards_in_team)
+
+    def goal(self):
+        self.score += 1
 
 
 class Player:
-    def __init__(self, name, position, movement_speed, emoji):
+    def __init__(self, name, position, movement_speed, team, emoji):
         self.name = name
         self.position = position
         self.movement_speed = movement_speed
+        self.team = team
         self.emoji = emoji
         self.hitbox = 30
 
-    def move_right(self):
-        self.position = (self.position[0] +
-                         self.movement_speed, self.position[1])
-
-    def move_left(self):
-        self.position = (self.position[0] -
-                         self.movement_speed, self.position[1])
-
-    def move_up(self):
-        self.position = (self.position[0],
-                         self.position[1] - self.movement_speed)
-
-    def move_down(self):
-        self.position = (self.position[0],
-                         self.position[1] + self.movement_speed)
+    def move(self, direction):
+        if direction == "right":
+            self.position = (
+                self.position[0] + self.movement_speed, self.position[1])
+        elif direction == "left":
+            self.position = (
+                self.position[0] - self.movement_speed, self.position[1])
+        elif direction == "up":
+            self.position = (
+                self.position[0], self.position[1] - self.movement_speed)
+        elif direction == "down":
+            self.position = (
+                self.position[0], self.position[1] + self.movement_speed)
 
 
-emoji = "C:\\Users\\k\\dev\\projects\\gacha_blue_lock\\img\\bachira_icon.png"
-field = "C:\\Users\\k\\dev\\projects\\gacha_blue_lock\\img\\field.png"
-img_result = "C:\\Users\\k\\dev\\projects\\gacha_blue_lock\\image_resultante.png"
-emoji_rin = "C:\\Users\\k\\dev\\projects\\gacha_blue_lock\\img\\itoshi-r_icon.png"
+emoji = "img/bachira_icon.png"
+field = "img/field.png"
+img_result = "image_resultante.png"
+emoji_rin = "img/itoshi-r_icon.png"
 ball = "img/ball.png"
 blue_cursor = "img/blue_cursor.png"
 red_cursor = "img/red_triangle.png"
+
+
+def position_players(user1, user2):
+    players = user1.position_user_players()
+    players += user2.position_user_players()
+    return players
 
 
 def clear_field(field, img_result):
@@ -87,7 +120,12 @@ def superposer_images(img_result,  field, players):
 
         final_position = (i.position[0] - position_to_substract[0],
                           i.position[1] - position_to_substract[1])
-        cursor_paste = Image.open(red_cursor).convert("RGBA").resize((20, 20))
+        if i.team.name == "blue":
+            cursor_paste = Image.open(blue_cursor).convert(
+                "RGBA").resize((20, 20))
+        elif i.team.name == "red":
+            cursor_paste = Image.open(red_cursor).convert(
+                "RGBA").resize((20, 20))
 
         img_fond.paste(
             cursor_paste, (i.position[0]-8, i.position[1]-63), cursor_paste)
@@ -168,8 +206,19 @@ def put_ball(img_result,  position):
     img_fond.save(img_result)
 
 
+def put_image(img_result, image_path, position):
+    img_fond = Image.open(img_result).convert("RGBA")
+    image = Image.open(image_path).convert("RGBA").resize((2, 2))
+    img_fond.paste(image, position, image)
+    img_fond.save(img_result)
+
+
 def deplacer_joueur(position, img_result, emoji, field):
     superposer_images(img_result, emoji, field, position)
+
+
+async def set_scoreboard(interaction):
+    await interaction.response.send_message("0 to 0")
 
 
 def get_random_float():

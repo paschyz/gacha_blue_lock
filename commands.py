@@ -183,30 +183,27 @@ def setup_commands(client: MyClient):
     @client.tree.command(description="Game")
     async def game(interaction: discord.Interaction):
         doc = users_collection.find_one({"user_id": interaction.user.id})
-        players = ()
+
         items = []
-        for card in doc["team"]:
-            card_doc = cards_collection.find_one({"name": card})
-            url_card = card_doc["card_image"]
-            color = get_color(card_doc["rarity"])
-            rarity = card_doc["name"]
-            embed = discord.Embed(title=f"{interaction.user.name}'s team",
-                                  color=color,
-                                  )
-            embed.set_image(url=url_card)
-            items.append(embed)
-            player = Player(card_doc["name"], (random.randint(23, 640), random.randint(51, 873)), 75,
-                            "img/"+card_doc["name"]+"_icon.png")
-            players += (player,)
+        user = User(interaction.user.id,
+                    interaction.user.name, doc["team"], "red")
+        user2 = User(interaction.user.id,
+                     interaction.user.name, doc["team"], "blue")
+        team_blue = Team("blue", user)
+        team_red = Team("red", user)
+
+        players = position_players(user, user2)
 
         selected_player = players[0]
 
         ball = Ball(
             (selected_player.position[0]-13, selected_player.position[1]+15), "img/ball.png")
         superposer_images(img_result, field, (players))
+        match = Match(user, user)
 
         put_ball(img_result, ball.position)
-        await interaction.response.send_message(file=discord.File("image_resultante.png"), view=Game(players, selected_player, ball))
+        score = await set_scoreboard(interaction)
+        await interaction.channel.send(file=discord.File("image_resultante.png"), view=Game(players, selected_player, ball, match, score))
 
     @client.tree.command(description="View and edit your team")
     async def embed(interaction: discord.Interaction):
@@ -292,7 +289,7 @@ def setup_commands(client: MyClient):
             users_collection.update_one({"user_id": user.id}, {
                                         "$set": {"ego_coins": ego_coins+amount}})
             if (amount > 0):
-                await interaction.response.send_message('**{}** *EgoCoins* given to {} ! Balance is now **{}** *EgoPoints*.'.format(amount, user.mention, doc['ego_coins']+amount))
+                await interaction.response.send_message('**{}** *EgoCoins* gifted to {} ! Balance is now **{}** *EgoPoints*.'.format(amount, user.mention, doc['ego_coins']+amount))
             else:
                 await interaction.response.send_message('**{}** *EgoCoins* removed from {} ! Balance is now **{}** *EgoPoints*.'.format(amount, user.mention, doc['ego_coins']+amount))
 
@@ -303,7 +300,7 @@ def setup_commands(client: MyClient):
                 ego_coins = user["ego_coins"]
                 users_collection.update_one({"user_id": user_id}, {
                                             "$set": {"ego_coins": ego_coins+amount}})
-            await interaction.response.send_message('**{}** *EgoCoins* given to all users !'.format(amount))
+            await interaction.response.send_message('**{}** *EgoCoins* gifted to all users !'.format(amount))
 
     @client.tree.command(description="[ADMIN ONLY] Give cards !")
     async def give_card(interaction: discord.Interaction, card_name: str, user: discord.User):
@@ -315,4 +312,4 @@ def setup_commands(client: MyClient):
             return
         users_collection.update_one({"user_id": user.id}, {
                                     "$push": {"dropped_images": card_name}})
-        await interaction.response.send_message('**{}** given to {} !'.format(card_name.capitalize(), user.mention))
+        await interaction.response.send_message('**{}** gifted to {} !'.format(card_name.capitalize(), user.mention))

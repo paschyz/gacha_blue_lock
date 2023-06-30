@@ -30,12 +30,12 @@ def superposer_images(img_result,  field, players):
         img_fond.save(img_result)
 
 
-bachira = Player("Bachira", (23, 51), emoji)
-rin = Player("Rin", (23, 873), emoji_rin)
-red_circle = Player("red_circle", (1, 1), red_circle)
-tuple = (rin, bachira, red_circle)
-superposer_images(img_result, field, tuple)
-print("done")
+# bachira = Player("Bachira", (23, 51), emoji)
+# rin = Player("Rin", (23, 873), emoji_rin)
+# red_circle = Player("red_circle", (1, 1), red_circle)
+# tuple = (rin, bachira, red_circle)
+# superposer_images(img_result, field, tuple)
+# print("done")
 # superposer_images(img_result, field, tuple)
 # tuple[0].move_down()
 # tuple[0].move_down()
