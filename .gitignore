@@ -181,3 +181,4 @@ poetry.toml
 # End of https://www.toptal.com/developers/gitignore/api/python
 /mongodb_query
 mongodb_query/mongo_query.py
+image_resultante.png

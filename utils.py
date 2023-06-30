@@ -15,48 +15,60 @@ class User:
 
 
 class Ball:
-    def __init__(self,  position, emoji):
+    def __init__(self, position, emoji):
         self.position = position
         self.emoji = emoji
+        self.hitbox = 30
 
-    def move_right(self):
-        self.position = (self.position[0] + 50, self.position[1])
+    def move_right(self, player):
+        self.position = (self.position[0] +
+                         player.movement_speed, self.position[1])
 
-    def move_left(self):
-        self.position = (self.position[0] - 50, self.position[1])
+    def move_left(self, player):
+        self.position = (self.position[0] -
+                         player.movement_speed, self.position[1])
 
-    def move_up(self):
-        self.position = (self.position[0], self.position[1] - 50)
+    def move_up(self, player):
+        self.position = (
+            self.position[0], self.position[1] - player.movement_speed)
 
-    def move_down(self):
-        self.position = (self.position[0], self.position[1] + 50)
+    def move_down(self, player):
+        self.position = (
+            self.position[0], self.position[1] + player.movement_speed)
 
 
 class Player:
-    def __init__(self, name, position, emoji):
+    def __init__(self, name, position, movement_speed, emoji):
         self.name = name
         self.position = position
+        self.movement_speed = movement_speed
         self.emoji = emoji
+        self.hitbox = 30
 
     def move_right(self):
-        self.position = (self.position[0] + 50, self.position[1])
+        self.position = (self.position[0] +
+                         self.movement_speed, self.position[1])
 
     def move_left(self):
-        self.position = (self.position[0] - 50, self.position[1])
+        self.position = (self.position[0] -
+                         self.movement_speed, self.position[1])
 
     def move_up(self):
-        self.position = (self.position[0], self.position[1] - 50)
+        self.position = (self.position[0],
+                         self.position[1] - self.movement_speed)
 
     def move_down(self):
-        self.position = (self.position[0], self.position[1] + 50)
+        self.position = (self.position[0],
+                         self.position[1] + self.movement_speed)
 
 
-emoji = "C:\\Users\\d\\dev\\projects\\gacha_blue_lock\\img\\bachira_icon.png"
-field = "C:\\Users\\d\\dev\\projects\\gacha_blue_lock\\img\\field.png"
-img_result = "C:\\Users\\d\\dev\\projects\\gacha_blue_lock\\image_resultante.png"
-emoji_rin = "C:\\Users\\d\\dev\\projects\\gacha_blue_lock\\img\\itoshi-r_icon.png"
+emoji = "C:\\Users\\k\\dev\\projects\\gacha_blue_lock\\img\\bachira_icon.png"
+field = "C:\\Users\\k\\dev\\projects\\gacha_blue_lock\\img\\field.png"
+img_result = "C:\\Users\\k\\dev\\projects\\gacha_blue_lock\\image_resultante.png"
+emoji_rin = "C:\\Users\\k\\dev\\projects\\gacha_blue_lock\\img\\itoshi-r_icon.png"
 ball = "img/ball.png"
 blue_cursor = "img/blue_cursor.png"
+red_cursor = "img/red_triangle.png"
 
 
 def clear_field(field, img_result):
@@ -75,7 +87,7 @@ def superposer_images(img_result,  field, players):
 
         final_position = (i.position[0] - position_to_substract[0],
                           i.position[1] - position_to_substract[1])
-        cursor_paste = Image.open(blue_cursor).convert("RGBA").resize((20, 20))
+        cursor_paste = Image.open(red_cursor).convert("RGBA").resize((20, 20))
 
         img_fond.paste(
             cursor_paste, (i.position[0]-8, i.position[1]-63), cursor_paste)
@@ -154,38 +166,10 @@ def put_ball(img_result,  position):
     ball_paste = Image.open(ball).convert("RGBA").resize((30, 30))
     img_fond.paste(ball_paste, position, ball_paste)
     img_fond.save(img_result)
-# bachira = Player("Bachira", (23, 51), emoji)
-# rin = Player("Rin", (23, 873), emoji_rin)
-
-# superposer_images(img_result, field, (bachira, rin))
-# rin.move_up()
-# rin.move_up()
-# rin.move_up()
-# rin.move_right()
-# superposer_images(img_result, field, (bachira, rin))
-
-
-# print(bachira.position)
-# bachira.move_down()
-# print(bachira.position)
-
-# Coordonnées (x, y) où vous souhaitez placer l'image du dessus
-# position = (0, 0)
-# img_after = "C:\\Users\\d\\dev\\projects\\gacha_blue_lock\\image_resultante.png"
-# img_after_convert = Image.open(img_after).convert("RGBA")
-# superposer_images(image_fond, image_dessus, (0, 0))
-# superposer_images(img_result, image_dessus, (23, 51))
-# superposer_images(img_result, image_dessus, (23, 873))
-# superposer_images(img_result, image_dessus, (640, 51))
-# superposer_images(img_result, image_dessus, (640, 873))
-# superposer_images(img_result, emoji, field,
-#                   ((23, 51), (23, 873), (640, 51), (640, 873)))
 
 
 def deplacer_joueur(position, img_result, emoji, field):
     superposer_images(img_result, emoji, field, position)
-# superposer_images(img_after_convert, image_dessus, (50, 50))
-# superposer_images(img_after_convert, image_dessus, (100, 100))
 
 
 def get_random_float():

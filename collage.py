@@ -1,29 +1,12 @@
 from PIL import Image
+from utils import Player
 
 
-class Player:
-    def __init__(self, name, position, emoji):
-        self.name = name
-        self.position = position
-        self.emoji = emoji
-
-    def move_right(self):
-        self.position = (self.position[0] + 30, self.position[1])
-
-    def move_left(self):
-        self.position = (self.position[0] - 30, self.position[1])
-
-    def move_up(self):
-        self.position = (self.position[0], self.position[1] - 30)
-
-    def move_down(self):
-        self.position = (self.position[0], self.position[1] + 30)
-
-
-emoji = "C:\\Users\\d\\dev\\projects\\gacha_blue_lock\\img\\bachira_icon.png"
-field = "C:\\Users\\d\\dev\\projects\\gacha_blue_lock\\img\\field.png"
-img_result = "C:\\Users\\d\\dev\\projects\\gacha_blue_lock\\image_resultante.png"
-emoji_rin = "C:\\Users\\d\\dev\\projects\\gacha_blue_lock\\img\\itoshi-r_icon.png"
+emoji = "img\\bachira_icon.png"
+field = "img\\field.png"
+img_result = "image_resultante.png"
+emoji_rin = "img\\itoshi-r_icon.png"
+red_circle = "img\\red_circle.png"
 
 
 def clear_field(field, img_result):
@@ -34,7 +17,7 @@ def clear_field(field, img_result):
 def superposer_images(img_result,  field, players):
     clear_field(field, img_result)
     img_fond = Image.open(img_result).convert("RGBA")
-    emoji_size = 75
+    emoji_size = 10
     for i in players:
         emoji_paste = Image.open(i.emoji).convert(
             "RGBA").resize((emoji_size, emoji_size))
@@ -49,14 +32,16 @@ def superposer_images(img_result,  field, players):
 
 bachira = Player("Bachira", (23, 51), emoji)
 rin = Player("Rin", (23, 873), emoji_rin)
-
-tuple = (rin, bachira)
+red_circle = Player("red_circle", (1, 1), red_circle)
+tuple = (rin, bachira, red_circle)
+superposer_images(img_result, field, tuple)
+print("done")
 # superposer_images(img_result, field, tuple)
 # tuple[0].move_down()
 # tuple[0].move_down()
 # superposer_images(img_result, field, tuple)
 
-field = "https://i.imgur.com/tLxY7fc.png"
+# field = "https://i.imgur.com/tLxY7fc.png"
 
 
 # print(bachira.position)
@@ -74,6 +59,7 @@ field = "https://i.imgur.com/tLxY7fc.png"
 # superposer_images(img_result, image_dessus, (640, 873))
 # superposer_images(img_result, emoji, field,
 #                   ((23, 51), (23, 873), (640, 51), (640, 873)))
+
 
 def deplacer_joueur(position, img_result, emoji, field):
     superposer_images(img_result, emoji, field, position)

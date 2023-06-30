@@ -36,7 +36,7 @@ class Game(View):
     async def button_left(self, interaction: Interaction, button: Button):
 
         self.selected_player.move_left()
-        self.ball.move_left()
+        self.ball.move_left(self.selected_player)
         superposer_images(img_result, field, (self.players))
         put_ball(img_result,  (self.ball.position))
         await interaction.response.edit_message(attachments=[discord.File(img_result)])
@@ -44,7 +44,7 @@ class Game(View):
     @discord.ui.button(emoji="➡️")
     async def button_right(self, interaction: Interaction, button: Button):
         self.selected_player.move_right()
-        self.ball.move_right()
+        self.ball.move_right(self.selected_player)
         superposer_images(img_result, field, (self.players))
         put_ball(img_result,  (self.ball.position))
         await interaction.response.edit_message(attachments=[discord.File(img_result)])
@@ -52,7 +52,7 @@ class Game(View):
     @discord.ui.button(emoji="⬆️")
     async def button_up(self, interaction: Interaction, button: Button):
         self.selected_player.move_up()
-        self.ball.move_up()
+        self.ball.move_up(self.selected_player)
 
         superposer_images(img_result, field, (self.players))
 
@@ -62,7 +62,7 @@ class Game(View):
     @discord.ui.button(emoji="⬇️")
     async def button_down(self, interaction: Interaction, button: Button):
         self.selected_player.move_down()
-        self.ball.move_down()
+        self.ball.move_down(self.selected_player)
         superposer_images(img_result, field, (self.players))
         put_ball(img_result,  (self.ball.position))
         await interaction.response.edit_message(attachments=[discord.File(img_result)])
@@ -74,13 +74,39 @@ class Game(View):
         put_ball(img_result,  (random_x, 14))
         pixels = get_pixels_on_line(self.ball.position, (random_x, 14))
         intercepted = False
+
+        # Check each pixel on the line between the ball position and the target position
         for i in pixels:
-            if closest_player(self.players, i) != self.selected_player and closest_player(self.players, i).position in get_pixels_on_circle(i, 15):
-                print("intercepted by : ", closest_player(self.players, i).name)
+            shifted_center = (closest_player(
+                self.players, i).position[0]-17, closest_player(self.players, i).position[1]-17)
+
+            # Check if the closest player (excluding the selected player) is within the circle of radius 50 around the pixel
+            if closest_player(self.players, i) != self.selected_player and shifted_center in get_pixels_on_circle(i, 35):
+                # Player intercepts the ball
+                print("intercepted by: ", closest_player(self.players, i).name)
+                print("ballon position: " + str(i))
+                print("closest: " + str(closest_player(self.players, i).position))
+                await interaction.channel.send(content="INTERCEPTION par " + closest_player(self.players, i).name + " !")
                 intercepted = True
                 break
-        if (intercepted == False):
-            print("GOAL !")
+
+        if intercepted == False:
+            # Ball reaches the target position without interception (goal)
+            await interaction.channel.send(content="GOAL !")
+
+        # # Add code to make player hitbox appear
+        # img_result_with_hitboxes = Image.open(img_result).convert("RGBA")
+        # for player in self.players:
+        #     hitbox_radius = 50 // 2
+        #     hitbox_diameter = 50
+        #     hitbox_img = Image.open(
+        #         "img/red_circle.png").convert("RGBA").resize((hitbox_diameter, hitbox_diameter))
+        #     player_hitbox_position = (
+        #         player.position[0] - hitbox_radius, player.position[1] - hitbox_radius)
+        #     img_result_with_hitboxes.paste(
+        #         hitbox_img, player_hitbox_position, hitbox_img)
+        # img_result_with_hitboxes.save(img_result)
+
         await interaction.response.edit_message(attachments=[discord.File(img_result)])
 
     @discord.ui.button(label="Pass ⚽", style=discord.ButtonStyle.green, row=2)

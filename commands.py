@@ -195,7 +195,7 @@ def setup_commands(client: MyClient):
                                   )
             embed.set_image(url=url_card)
             items.append(embed)
-            player = Player(card_doc["name"], (random.randint(23, 640), random.randint(51, 873)),
+            player = Player(card_doc["name"], (random.randint(23, 640), random.randint(51, 873)), 75,
                             "img/"+card_doc["name"]+"_icon.png")
             players += (player,)
 
