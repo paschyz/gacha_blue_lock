@@ -7,16 +7,19 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-
 ## perso ##
+stats.txt
 card.json
 img/png/
 img/discord_bot/
 img/logo/
+*images/
 ratings.txt
 # C extensions
 *.so
-
+json
+main.py
+mongo_query.py
 # Distribution / packaging
 .Python
 build/
@@ -176,3 +179,6 @@ poetry.toml
 
 
 # End of https://www.toptal.com/developers/gitignore/api/python
+/mongodb_query
+mongodb_query/mongo_query.py
+image_resultante.png
