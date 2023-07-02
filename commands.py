@@ -184,26 +184,20 @@ def setup_commands(client: MyClient):
     async def game(interaction: discord.Interaction):
         doc = users_collection.find_one({"user_id": interaction.user.id})
 
-        items = []
+        # create both users to play
         user = User(interaction.user.id,
                     interaction.user.name, doc["team"], "red")
         user2 = User(interaction.user.id,
                      interaction.user.name, doc["team"], "blue")
-        team_blue = Team("blue", user)
-        team_red = Team("red", user)
 
-        players = position_players(user, user2)
-
+        # select who has the ball first
         selected_player = players[0]
-
-        ball = Ball(
-            (selected_player.position[0]-13, selected_player.position[1]+15), "img/ball.png")
-        superposer_images(img_result, field, (players))
         match = Match(user, user)
 
-        put_ball(img_result, ball.position)
         score = await set_scoreboard(interaction)
-        await interaction.channel.send(file=discord.File("image_resultante.png"), view=Game(players, selected_player, ball, match, score))
+        game = Game(players, selected_player, match, score, img_result, field)
+        game.start_game()
+        await interaction.channel.send(file=discord.File("image_resultante.png"), view=game)
 
     @client.tree.command(description="View and edit your team")
     async def embed(interaction: discord.Interaction):
