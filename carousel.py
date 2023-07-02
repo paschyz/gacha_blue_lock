@@ -26,13 +26,34 @@ class Carousel(View):
 
 
 class Game(View):
-    def __init__(self,  players, selected_player, ball, match, score_message):
+    def __init__(self, players, selected_player, match, score_message, img_result, field):
         super().__init__()
         self.players = players
         self.selected_player = selected_player
-        self.ball = ball
+        self.ball = Ball(
+            (self.selected_player.position[0] - 13, self.selected_player.position[1] + 15), "img/ball.png")
         self.match = match
         self.score_message = score_message
+        self.img_result = img_result
+        self.field = field
+
+    def reposition_players(self):
+        for player in self.players:
+            player.reposition()
+
+    def start_game(self):
+        self.ball.position = (
+            self.selected_player.position[0] - 13, self.selected_player.position[1] + 15)
+        superposer_images(self.img_result, self.field, self.players)
+        put_ball(self.img_result, self.ball.position)
+
+    def restart_game(self):
+        clear_field(self.field, self.img_result)
+        self.reposition_players()
+        self.ball.position = (
+            self.selected_player.position[0] - 13, self.selected_player.position[1] + 15)
+        superposer_images(self.img_result, self.field, self.players)
+        put_ball(self.img_result, self.ball.position)
 
     @discord.ui.button(emoji="⬅️")
     async def button_left(self, interaction: Interaction, button: Button):
@@ -72,8 +93,7 @@ class Game(View):
     @discord.ui.button(label="Shoot ⚽", style=discord.ButtonStyle.primary, row=2)
     async def button_shoot(self, interaction: Interaction, button: Button):
         random_x = random.randint(240, 440)
-        interception_image_path = "img/red_circle.png"
-        put_ball(img_result,  (random_x, 14))
+
         pixels = get_pixels_on_line(self.ball.position, (random_x, 14))
         intercepted = False
 
@@ -81,42 +101,29 @@ class Game(View):
         for i in pixels:
             shifted_center = (closest_player(
                 self.players, i).position[0]-17, closest_player(self.players, i).position[1]-17)
-
+            closest_enemy_player = closest_player(self.players, i)
             # Check if the closest player (excluding the selected player) is within the circle of radius 50 around the pixel
-            if closest_player(self.players, i) != self.selected_player and shifted_center in get_pixels_on_circle(i, 35):
-                # Player intercepts the ball
-                print("intercepted by: ", closest_player(self.players, i).name)
-                print("ballon position: " + str(i))
-                print("closest: " + str(closest_player(self.players, i).position))
-                await interaction.channel.send(content="INTERCEPTION par " + closest_player(self.players, i).name + " !")
+            if closest_enemy_player != self.selected_player and closest_enemy_player.team.name != self.selected_player.team.name and shifted_center in get_pixels_on_circle(i, 35):
+
+                await interaction.channel.send(content="INTERCEPTION par " + closest_enemy_player.name.upper() + f"({closest_enemy_player.team.name})" + " !")
                 intercepted = True
+
                 break
 
         if intercepted == False:
             # Ball reaches the target position without interception (goal)
+            put_ball(self.img_result,  (random_x, 14))
             self.match.team_blue.goal()
+            self.restart_game()
             # await self.score_message.edit(content=f"{self.match.team_blue.score}to{self.match.team_red.score}")
             await interaction.channel.send(content=f"GOAL by {self.selected_player.name.upper()} ! {self.match.team_blue.score} to {self.match.team_red.score}")
 
-        # # Add code to make player hitbox appear
-        # img_result_with_hitboxes = Image.open(img_result).convert("RGBA")
-        # for player in self.players:
-        #     hitbox_radius = 50 // 2
-        #     hitbox_diameter = 50
-        #     hitbox_img = Image.open(
-        #         "img/red_circle.png").convert("RGBA").resize((hitbox_diameter, hitbox_diameter))
-        #     player_hitbox_position = (
-        #         player.position[0] - hitbox_radius, player.position[1] - hitbox_radius)
-        #     img_result_with_hitboxes.paste(
-        #         hitbox_img, player_hitbox_position, hitbox_img)
-        # img_result_with_hitboxes.save(img_result)
-
-        await interaction.response.edit_message(attachments=[discord.File(img_result)])
+        await interaction.response.edit_message(attachments=[discord.File(self.img_result)])
 
     @discord.ui.button(label="Pass ⚽", style=discord.ButtonStyle.green, row=2)
     async def button_pass(self, interaction: Interaction, button: Button):
-        self.selected_player = closest_player(
-            self.players, self.selected_player.position)
+        self.selected_player = closest_ally_player(
+            self.players, self.selected_player)
         superposer_images(img_result, field, (self.players))
         self.ball.position = (
             self.selected_player.position[0]-13, self.selected_player.position[1]+15)

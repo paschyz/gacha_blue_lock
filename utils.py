@@ -88,6 +88,9 @@ class Player:
             self.position = (
                 self.position[0], self.position[1] + self.movement_speed)
 
+    def reposition(self):
+        self.position = (random.randint(23, 640), random.randint(51, 873))
+
 
 emoji = "img/bachira_icon.png"
 field = "img/field.png"
@@ -193,6 +196,21 @@ def closest_player(players, position):
         distance = math.sqrt(
             (player.position[0] - position[0]) ** 2 + (player.position[1] - position[1]) ** 2)
         if (distance < closest_distance and distance != 0):
+            closest_distance = distance
+            closest_player = player
+
+    return closest_player
+
+
+def closest_ally_player(players, selected_player):
+    closest_distance = math.inf
+    closest_player = None
+
+    for player in players:
+        distance = math.sqrt(
+            (player.position[0] - selected_player.position[0]) ** 2 + (player.position[1] - selected_player.position[1]) ** 2)
+        if (distance < closest_distance and distance != 0 and player.team.name == selected_player.team.name):
+            print(f"color team of passed :{player.team.name} ")
             closest_distance = distance
             closest_player = player
 
