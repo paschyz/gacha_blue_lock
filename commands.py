@@ -190,6 +190,9 @@ def setup_commands(client: MyClient):
         user2 = User(interaction.user.id,
                      interaction.user.name, doc["team"], "blue")
 
+        # gathers players from both teams
+        players = position_players(user, user2)
+
         # select who has the ball first
         selected_player = players[0]
         match = Match(user, user)
