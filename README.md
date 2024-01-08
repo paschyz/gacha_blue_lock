@@ -30,10 +30,10 @@ Use the command !register to join the game and start your card collecting journe
 - /give_card: [ADMIN ONLY] Give specific cards to users. Admins, use this command wisely.
 
 ## Card Rarity
-- Common (54.5%)
-- Rare (40%)
-- Epic (5%)
-- Legendary (0.5%)
+- ![#47d10a](https://placehold.co/15x15/47d10a/47d10a.png) Common (54.5%) 
+- ![#0092ff](https://placehold.co/15x15/0092ff/0092ff.png) Rare (40%)
+- ![#ff00eb](https://placehold.co/15x15/ff00eb/ff00eb.png) Epic (5%)
+- ![#fff44b](https://placehold.co/15x15/fff44b/fff44b.png) Legendary (0.5%)
   
 ## Contributing
 Feel free to contribute to the development of the Blue Lock Card Collector Discord bot. If you have suggestions, encounter issues, or want to add new features, create an issue or submit a pull request.
