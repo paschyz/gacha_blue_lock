@@ -91,7 +91,7 @@ def setup_commands(client: MyClient):
             dropped_images_with_ratings.append(
                 (card, card_doc['rating']))
 
-        # Sort dropped_images by rating
+         Sort dropped_images by rating
         sorted_dropped_images = sorted(
             dropped_images_with_ratings, key=lambda x: x[1], reverse=True)
 
@@ -184,16 +184,16 @@ def setup_commands(client: MyClient):
     async def game(interaction: discord.Interaction):
         doc = users_collection.find_one({"user_id": interaction.user.id})
 
-        # create both users to play
+        # Create both users to play
         user = User(interaction.user.id,
                     interaction.user.name, doc["team"], "red")
         user2 = User(interaction.user.id,
                      interaction.user.name, doc["team"], "blue")
 
-        # gathers players from both teams
+        # Gathers players from both teams
         players = position_players(user, user2)
 
-        # select who has the ball first
+        # Select who has the ball first
         selected_player = players[0]
         match = Match(user, user)
 
@@ -204,18 +204,14 @@ def setup_commands(client: MyClient):
 
     @client.tree.command(description="View and edit your team")
     async def embed(interaction: discord.Interaction):
-        # Créez un dictionnaire pour stocker les positions des joueurs
         emoji_name = "bachira_suit_pcmin"
         for emoji in client.emojis:
             if emoji.name == emoji_name:
                 player_positions = {str(emoji): (2, 2)}
 
-        # Récupération de la représentation sous forme de chaîne de la grille
         grid_str = create_and_display_grid(player_positions)
 
-        # Envoi de la grille dans un message Discord
         await interaction.response.send_message(f"```\n{grid_str}\n```")
-        # await interaction.response.send_message(f"```<:bachira_suit_pcmin:1092451361041420389>```")
 
     @client.tree.command(description="View and edit your team")
     async def send_emoji(interaction: discord.Interaction):
